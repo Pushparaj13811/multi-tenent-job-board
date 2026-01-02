@@ -1,0 +1,4 @@
+-r base.txt
+
+gunicorn==22.0.0
+python-json-logger==2.0.7
