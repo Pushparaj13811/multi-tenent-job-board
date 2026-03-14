@@ -1,0 +1,16 @@
+{% now "Y" as current_year %}
+<footer class="border-t mt-auto" style="background: var(--hf-footer-bg); border-color: var(--hf-border);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="font-display font-semibold" style="color: var(--hf-text-primary);">HireFlow</span>
+        <span style="color: var(--hf-text-muted);">&middot;</span>
+        <span style="color: var(--hf-text-muted);">&copy; {{ current_year }} Multi-Tenant Job Board</span>
+      </div>
+      <div class="flex items-center gap-6 text-sm">
+        <a href="{% url 'frontend:job-board' %}" class="nav-link-inactive transition-colors">Browse Jobs</a>
+        <a href="/api/docs/" class="nav-link-inactive transition-colors">API Docs</a>
+      </div>
+    </div>
+  </div>
+</footer>

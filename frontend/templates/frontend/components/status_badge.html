@@ -1,0 +1,5 @@
+<!-- Usage: {% include "frontend/components/status_badge.html" with status="applied" %} -->
+<!-- Also used inline in Alpine: x-bind:class="'status-' + item.status" -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize status-{{ status }}">
+  {{ status }}
+</span>

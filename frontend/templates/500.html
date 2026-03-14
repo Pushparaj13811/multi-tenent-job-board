@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Error — HireFlow</title>
+  <script>
+    (function(){
+      var t = localStorage.getItem('hf_theme');
+      if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'frontend/css/app.css' %}">
+</head>
+<body class="h-full flex items-center justify-center" style="background: var(--hf-base); color: var(--hf-text-primary); font-family: 'DM Sans', system-ui, sans-serif;">
+  <div class="text-center px-6 py-16 max-w-lg">
+    <p class="text-6xl font-bold text-red-400">500</p>
+    <h1 class="mt-4 text-2xl font-bold" style="color: var(--hf-text-primary);">Something went wrong</h1>
+    <p class="mt-2" style="color: var(--hf-text-muted);">We're experiencing a temporary issue. Please try again in a few moments.</p>
+    <div class="mt-8 flex items-center justify-center gap-4">
+      <a href="/" class="hf-btn-primary inline-flex items-center">
+        Go Home
+      </a>
+      <button onclick="location.reload()" class="hf-btn-secondary inline-flex items-center">
+        Try Again
+      </button>
+    </div>
+  </div>
+</body>
+</html>

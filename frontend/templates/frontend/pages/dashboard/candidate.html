@@ -1,0 +1,284 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Candidate Dashboard — HireFlow{% endblock %}
+
+{% block page_title %}Candidate Dashboard{% endblock %}
+{% block page_subtitle %}Track your applications and discover new opportunities{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'frontend:job-board' %}"
+   class="hf-btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+  </svg>
+  Browse Jobs
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div x-data="candidateDash()" x-init="init()">
+
+  <!-- ── Loading skeleton ── -->
+  <div x-show="loading" aria-busy="true" aria-label="Loading dashboard">
+    <!-- Skeleton stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <template x-for="i in 4" :key="i">
+        <div class="glass-card rounded-xl p-5">
+          <div class="h-3 skeleton rounded w-2/3 mb-3"></div>
+          <div class="h-8 skeleton rounded w-1/3"></div>
+        </div>
+      </template>
+    </div>
+    <!-- Skeleton table -->
+    <div class="glass-card rounded-xl overflow-hidden">
+      <div class="px-6 py-4" style="border-bottom: 1px solid var(--hf-divider-color);">
+        <div class="h-5 skeleton rounded w-1/4"></div>
+      </div>
+      <div class="divide-y" style="--tw-divide-color: var(--hf-divider-color);">
+        <template x-for="i in 5" :key="i">
+          <div class="px-6 py-4 flex items-center gap-4">
+            <div class="flex-1 space-y-2">
+              <div class="h-4 skeleton rounded w-1/3"></div>
+              <div class="h-3 skeleton rounded w-1/4"></div>
+            </div>
+            <div class="h-5 skeleton rounded-full w-20"></div>
+            <div class="h-4 skeleton rounded w-16"></div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Loaded state ── -->
+  <div x-show="!loading" x-cloak>
+
+    <!-- Stats cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+      <!-- Total applications -->
+      <div class="glass-card rounded-xl p-5 hover:border-white/12 transition-colors">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-white/50 font-body">Total Applied</p>
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--hf-indigo-light);">
+            <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-white font-display" x-text="stats.total_applications ?? 0"></p>
+        <p class="mt-1 text-xs text-white/40 font-body">Lifetime applications</p>
+      </div>
+
+      <!-- Active / In Progress -->
+      <div class="glass-card rounded-xl p-5 hover:border-white/12 transition-colors">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-white/50 font-body">In Progress</p>
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: color-mix(in srgb, var(--hf-warning) 10%, transparent);">
+            <svg class="w-5 h-5" style="color: var(--hf-warning);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-white font-display" x-text="activeCount"></p>
+        <p class="mt-1 text-xs text-white/40 font-body">Under review</p>
+      </div>
+
+      <!-- Interviews -->
+      <div class="glass-card rounded-xl p-5 hover:border-white/12 transition-colors">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-white/50 font-body">Interviews</p>
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: color-mix(in srgb, var(--hf-indigo) 10%, transparent);">
+            <svg class="w-5 h-5" style="color: var(--hf-indigo-light);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-white font-display" x-text="statusCounts.interview ?? 0"></p>
+        <p class="mt-1 text-xs text-white/40 font-body">Scheduled</p>
+      </div>
+
+      <!-- Offers -->
+      <div class="glass-card rounded-xl p-5 hover:border-white/12 transition-colors">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-white/50 font-body">Offers</p>
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: color-mix(in srgb, var(--hf-success) 10%, transparent);">
+            <svg class="w-5 h-5" style="color: var(--hf-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-white font-display" x-text="statusCounts.offered ?? 0"></p>
+        <p class="mt-1 text-xs text-white/40 font-body">Received</p>
+      </div>
+    </div>
+
+    <!-- Status breakdown pills (from applications_by_status) -->
+    <div class="flex flex-wrap gap-2 mb-6" x-show="statusBreakdown.length > 0">
+      <template x-for="item in statusBreakdown" :key="item.status">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-body border border-white/[0.08]" style="background: var(--hf-card-bg);">
+          <span class="w-2 h-2 rounded-full" :class="statusDot(item.status)"></span>
+          <span class="capitalize text-white/70" x-text="item.status"></span>
+          <span class="font-bold text-white" x-text="item.count"></span>
+        </div>
+      </template>
+    </div>
+
+    <!-- Recent applications table -->
+    <div class="glass-card rounded-xl overflow-hidden">
+      <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--hf-divider-color);">
+        <h2 class="text-base font-semibold text-white font-display">Recent Applications</h2>
+        <a href="{% url 'frontend:applications' %}"
+           class="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors">
+          View all &rarr;
+        </a>
+      </div>
+
+      <!-- Table — desktop -->
+      <div class="hidden sm:block overflow-x-auto">
+        <table class="min-w-full divide-y" style="--tw-divide-color: var(--hf-divider-color);">
+          <thead>
+            <tr style="background: var(--hf-card-bg);">
+              <th class="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider font-body">Job</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider font-body">Company</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider font-body">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider font-body">Applied</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wider font-body">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y" style="--tw-divide-color: var(--hf-divider-color);">
+            <template x-if="recentApplications.length === 0">
+              <tr>
+                <td colspan="5" class="px-6 py-12 text-center text-sm text-white/50 font-body">
+                  No applications yet.
+                  <a href="{% url 'frontend:job-board' %}" class="text-primary-400 hover:underline ml-1">Browse jobs</a>
+                </td>
+              </tr>
+            </template>
+            <template x-for="app in recentApplications" :key="app.id">
+              <tr class="transition-colors" style="--hover-bg: var(--hf-card-bg);" onmouseenter="this.style.background='var(--hf-card-bg)'" onmouseleave="this.style.background='transparent'">
+                <td class="px-6 py-4">
+                  <p class="text-sm font-medium text-white font-body" x-text="app.job_title || app.job?.title || '—'"></p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-sm text-white/50 font-body" x-text="app.company_name || app.job?.company?.name || '—'"></p>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                        :class="statusColor(app.status)"
+                        x-text="app.status">
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-white/50 font-body" x-text="formatDate(app.created_at)"></td>
+                <td class="px-6 py-4 text-right">
+                  <a :href="`/applications/${app.id}/`"
+                     class="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors">
+                    View
+                  </a>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cards — mobile -->
+      <div class="sm:hidden divide-y" style="--tw-divide-color: var(--hf-divider-color);">
+        <template x-if="recentApplications.length === 0">
+          <div class="px-4 py-10 text-center text-sm text-white/50 font-body">
+            No applications yet.
+            <a href="{% url 'frontend:job-board' %}" class="text-primary-400 hover:underline">Browse jobs</a>
+          </div>
+        </template>
+        <template x-for="app in recentApplications" :key="app.id">
+          <div class="px-4 py-4 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-white truncate font-body" x-text="app.job_title || app.job?.title || '—'"></p>
+              <p class="text-xs text-white/50 truncate font-body" x-text="app.company_name || app.job?.company?.name || '—'"></p>
+              <div class="mt-1.5 flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                      :class="statusColor(app.status)"
+                      x-text="app.status">
+                </span>
+                <span class="text-xs text-white/40 font-body" x-text="formatDate(app.created_at)"></span>
+              </div>
+            </div>
+            <a :href="`/applications/${app.id}/`"
+               class="shrink-0 text-sm font-medium text-primary-400 hover:text-primary-300">
+              View
+            </a>
+          </div>
+        </template>
+      </div>
+
+      <!-- Footer link -->
+      <div class="px-6 py-4" style="border-top: 1px solid var(--hf-divider-color); background: var(--hf-card-bg);">
+        <a href="{% url 'frontend:applications' %}"
+           class="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors flex items-center gap-1">
+          View all applications
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+  </div><!-- /loaded -->
+
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function candidateDash() {
+  return {
+    loading: true,
+    stats: {},
+    statusBreakdown: [],
+    statusCounts: {},
+    recentApplications: [],
+
+    async init() {
+      try {
+        const data = await HireFlowAPI.getCandidateDashboard();
+        this.stats = data;
+
+        // Build status counts map from applications_by_status array
+        const byStatus = data.applications_by_status || [];
+        byStatus.forEach(item => {
+          this.statusCounts[item.status] = item.count;
+        });
+        this.statusBreakdown = byStatus;
+
+        this.recentApplications = (data.recent_applications || []).slice(0, 10);
+      } catch (e) {
+        this.$root.closest('[x-data]').__x.$data.error('Failed to load dashboard');
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    get activeCount() {
+      const active = ['applied', 'reviewing', 'shortlisted', 'interview'];
+      return active.reduce((sum, s) => sum + (this.statusCounts[s] || 0), 0);
+    },
+
+    statusDot(status) {
+      const dots = {
+        applied: 'bg-blue-500',
+        reviewing: 'bg-yellow-500',
+        shortlisted: 'bg-indigo-500',
+        interview: 'bg-purple-500',
+        offered: 'bg-green-500',
+        rejected: 'bg-red-500',
+        withdrawn: 'bg-gray-400',
+      };
+      return dots[status] || 'bg-gray-400';
+    },
+
+    // Proxy helpers from parent app()
+    formatDate(d) { return window.app ? this.$root.closest('[x-data]').__x.$data.formatDate(d) : d; },
+    statusColor(s) { return window.app ? this.$root.closest('[x-data]').__x.$data.statusColor(s) : ''; },
+  };
+}
+</script>
+{% endblock %}

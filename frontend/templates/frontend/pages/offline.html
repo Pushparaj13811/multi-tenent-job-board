@@ -1,0 +1,61 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}You're Offline — HireFlow{% endblock %}
+{% block meta_description %}HireFlow is currently offline. Please check your internet connection and try again.{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex flex-col items-center justify-center px-4 py-16" style="background: var(--hf-base);">
+
+  <!-- Offline illustration -->
+  <div class="mb-8">
+    <div class="relative w-32 h-32 mx-auto">
+      <!-- Outer ring (muted) -->
+      <div class="absolute inset-0 rounded-full opacity-60" style="background: var(--hf-card-bg);"></div>
+      <!-- Inner circle -->
+      <div class="absolute inset-4 rounded-full flex items-center justify-center" style="background: var(--hf-card-bg); border: 1px solid var(--hf-card-border);">
+        <!-- Wifi-off icon -->
+        <svg class="w-12 h-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M3 3l18 18M8.111 8.111A5.001 5.001 0 0012 7a5.001 5.001 0 013.889 1.889M1.584 4.293A11.956 11.956 0 0112 2c3.073 0 5.879 1.152 7.98 3.035M5.636 9.636A7.003 7.003 0 0112 8c1.845 0 3.53.713 4.787 1.879M9.879 13.121A3.001 3.001 0 0112 12c.825 0 1.573.334 2.121.879M13 17a1 1 0 11-2 0 1 1 0 012 0z"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heading -->
+  <h1 class="text-3xl font-bold mb-3 text-center font-display" style="color: var(--hf-text-primary);">You're offline</h1>
+  <p class="text-base text-center max-w-sm mb-8 leading-relaxed font-body" style="color: var(--hf-text-muted);">
+    It looks like you've lost your internet connection.
+    Check your network settings and try again.
+  </p>
+
+  <!-- Retry button -->
+  <button onclick="location.reload()"
+          class="hf-btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl active:scale-95 transition-all">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+    Try Again
+  </button>
+
+  <!-- Secondary link — cached content -->
+  <p class="mt-6 text-sm" style="color: var(--hf-text-muted);">
+    Some pages may still be available from cache.
+    <a href="/" class="text-primary-400 hover:text-primary-300 font-medium transition-colors ml-1">
+      Go to Home
+    </a>
+  </p>
+
+  <!-- HireFlow branding -->
+  <div class="mt-16 flex items-center gap-2" style="color: var(--hf-text-muted);">
+    <svg class="w-6 h-6 text-white/20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="currentColor"/>
+      <path d="M8 10h6v12H8zM18 10h6v12h-6z" fill="white" opacity="0.8"/>
+      <path d="M11 15h10v2H11z" fill="white" opacity="0.8"/>
+    </svg>
+    <span class="text-sm font-medium">HireFlow</span>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Notifications — HireFlow{% endblock %}
+
+{% block page_title %}Notifications{% endblock %}
+{% block page_subtitle %}Stay updated on your applications and activity{% endblock %}
+
+{% block page_actions %}
+<button x-data
+        @click="$dispatch('mark-all-read')"
+        class="hf-btn-secondary inline-flex items-center gap-2">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+  </svg>
+  Mark all read
+</button>
+{% endblock %}
+
+{% block dashboard_content %}
+<div x-data="notificationsList()"
+     x-init="init()"
+     @mark-all-read.window="markAllRead()">
+
+  <!-- ── Filter tabs ── -->
+  <div class="mb-6 flex items-center gap-1 rounded-xl p-1 w-fit" style="background: var(--hf-card-bg); border: 1px solid var(--hf-divider-color);">
+    <button @click="setFilter('all')"
+            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            :class="filter === 'all'
+              ? 'bg-primary-600 text-white'
+              : 'text-white/60 hover:text-white hover:bg-white/5'">
+      All
+      <span x-show="totalCount > 0"
+            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs"
+            :class="filter === 'all' ? 'bg-white/25 text-white' : 'bg-white/5 text-white/60'"
+            x-text="totalCount">
+      </span>
+    </button>
+    <button @click="setFilter('unread')"
+            class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            :class="filter === 'unread'
+              ? 'bg-primary-600 text-white'
+              : 'text-white/60 hover:text-white hover:bg-white/5'">
+      Unread
+      <span x-show="unreadCount > 0"
+            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold"
+            :class="filter === 'unread' ? 'bg-white/25 text-white' : 'text-blue-400'"
+            :style="filter !== 'unread' ? 'background: rgba(59, 130, 246, 0.15);' : ''"
+            x-text="unreadCount">
+      </span>
+    </button>
+  </div>
+
+  <!-- ── Loading skeleton ── -->
+  <div x-show="loading" aria-busy="true" aria-label="Loading notifications">
+    <div class="glass-card overflow-hidden animate-pulse">
+      <div class="divide-y" style="border-color: var(--hf-divider-color);">
+        <template x-for="i in 6" :key="i">
+          <div class="px-5 py-4 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-full bg-white/5 shrink-0"></div>
+            <div class="flex-1 space-y-2 pt-1">
+              <div class="h-4 bg-white/5 rounded w-2/5"></div>
+              <div class="h-3 bg-white/5 rounded w-3/5"></div>
+              <div class="h-3 bg-white/5 rounded w-1/4"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Content ── -->
+  <div x-show="!loading" x-cloak>
+
+    <!-- Empty state -->
+    <div x-show="displayedNotifications.length === 0"
+         class="glass-card py-16 flex flex-col items-center text-center px-6">
+      <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+        <svg class="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-semibold text-white font-display mb-1">
+        <span x-show="filter === 'all'">No notifications yet</span>
+        <span x-show="filter === 'unread'">All caught up!</span>
+      </h3>
+      <p class="text-sm text-white/50 max-w-sm font-body">
+        <span x-show="filter === 'all'">You'll see updates about your applications here.</span>
+        <span x-show="filter === 'unread'">You have no unread notifications.</span>
+      </p>
+    </div>
+
+    <!-- Notifications list -->
+    <div x-show="displayedNotifications.length > 0"
+         class="glass-card overflow-hidden divide-y" style="border-color: var(--hf-divider-color);">
+
+      <template x-for="notif in displayedNotifications" :key="notif.id">
+        <div @click="markRead(notif)"
+             class="flex items-start gap-4 px-5 py-4 cursor-pointer transition-colors group"
+             :class="!notif.is_read ? 'hover:bg-white/5' : 'hover:bg-white/5'"
+             :style="!notif.is_read ? 'background: rgba(59, 130, 246, 0.06);' : ''">
+
+          <!-- Icon -->
+          <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+               :class="notifIconBg(notif.notification_type)">
+            <!-- Application icon -->
+            <template x-if="notif.notification_type === 'application_received' || notif.notification_type === 'application'">
+              <svg class="w-5 h-5" :class="notifIconColor(notif.notification_type)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </template>
+            <!-- Status update icon -->
+            <template x-if="notif.notification_type === 'status_update' || notif.notification_type === 'status'">
+              <svg class="w-5 h-5" :class="notifIconColor(notif.notification_type)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </template>
+            <!-- Job alert icon -->
+            <template x-if="notif.notification_type === 'job_alert' || notif.notification_type === 'job'">
+              <svg class="w-5 h-5" :class="notifIconColor(notif.notification_type)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </template>
+            <!-- Offer icon -->
+            <template x-if="notif.notification_type === 'offer'">
+              <svg class="w-5 h-5" :class="notifIconColor(notif.notification_type)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+              </svg>
+            </template>
+            <!-- Default bell icon -->
+            <template x-if="!['application_received','application','status_update','status','job_alert','job','offer'].includes(notif.notification_type)">
+              <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+            </template>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <p class="text-sm font-semibold text-white"
+                 x-text="notif.title || 'Notification'"></p>
+              <div class="shrink-0 flex items-center gap-2">
+                <span x-show="!notif.is_read"
+                      class="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1"
+                      aria-label="Unread">
+                </span>
+                <span class="text-xs text-white/40 whitespace-nowrap" x-text="timeAgo(notif.created_at)"></span>
+              </div>
+            </div>
+            <p class="mt-0.5 text-sm text-white/50 leading-relaxed"
+               x-text="notif.message || notif.body || ''"></p>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Pagination -->
+    <div x-show="nextCursor || prevCursor" class="mt-6 flex items-center justify-between">
+      <button @click="loadPage(prevCursor)"
+              x-show="prevCursor"
+              class="hf-btn-secondary inline-flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Previous
+      </button>
+      <button @click="loadPage(nextCursor)"
+              x-show="nextCursor"
+              class="hf-btn-secondary inline-flex items-center gap-2">
+        Next
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </div><!-- /content -->
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function notificationsList() {
+  return {
+    loading: true,
+    notifications: [],
+    filter: 'all',
+    nextCursor: null,
+    prevCursor: null,
+
+    async init() {
+      await this.loadPage(null);
+    },
+
+    async loadPage(cursor) {
+      this.loading = true;
+      try {
+        const parts = [];
+        if (this.filter === 'unread') parts.push('is_read=false');
+        if (cursor) parts.push(`cursor=${cursor}`);
+        const params = parts.join('&');
+
+        const data = await HireFlowAPI.listNotifications(params);
+        this.notifications = data.results || data;
+        this.nextCursor = this.extractCursor(data.next);
+        this.prevCursor = this.extractCursor(data.previous);
+      } catch (e) {
+        console.error('Failed to load notifications:', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async setFilter(f) {
+      this.filter = f;
+      this.nextCursor = null;
+      this.prevCursor = null;
+      await this.loadPage(null);
+    },
+
+    get displayedNotifications() {
+      return this.notifications;
+    },
+
+    get totalCount() {
+      return this.notifications.length;
+    },
+
+    get unreadCount() {
+      return this.notifications.filter(n => !n.is_read).length;
+    },
+
+    async markRead(notif) {
+      if (notif.is_read) return;
+      notif.is_read = true;
+      try {
+        await HireFlowAPI.markNotificationRead(notif.id);
+      } catch (e) {
+        notif.is_read = false;
+        console.error('Mark read failed:', e);
+      }
+    },
+
+    async markAllRead() {
+      const unread = this.notifications.filter(n => !n.is_read);
+      if (unread.length === 0) return;
+      // Optimistically update
+      unread.forEach(n => { n.is_read = true; });
+      try {
+        await HireFlowAPI.markAllNotificationsRead();
+      } catch (e) {
+        // Revert on failure
+        unread.forEach(n => { n.is_read = false; });
+        console.error('Mark all read failed:', e);
+      }
+    },
+
+    notifIconBg(type) {
+      const map = {
+        application_received: 'bg-blue-500/10',
+        application: 'bg-blue-500/10',
+        status_update: 'bg-yellow-500/10',
+        status: 'bg-yellow-500/10',
+        job_alert: 'bg-purple-500/10',
+        job: 'bg-purple-500/10',
+        offer: 'bg-green-500/10',
+      };
+      return map[type] || 'bg-white/5';
+    },
+
+    notifIconColor(type) {
+      const map = {
+        application_received: 'text-blue-400',
+        application: 'text-blue-400',
+        status_update: 'text-yellow-400',
+        status: 'text-yellow-400',
+        job_alert: 'text-purple-400',
+        job: 'text-purple-400',
+        offer: 'text-green-400',
+      };
+      return map[type] || 'text-white/50';
+    },
+
+    timeAgo(d) {
+      if (!d) return '';
+      const now = new Date();
+      const date = new Date(d);
+      const seconds = Math.floor((now - date) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days}d ago`;
+      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    },
+
+    extractCursor(url) {
+      if (!url) return null;
+      try {
+        const u = new URL(url, window.location.origin);
+        return u.searchParams.get('cursor');
+      } catch { return null; }
+    },
+  };
+}
+</script>
+{% endblock %}

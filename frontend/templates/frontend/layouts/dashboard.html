@@ -1,0 +1,90 @@
+{% extends "frontend/base.html" %}
+
+{% block main_class %}min-h-screen{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8">
+
+    <!-- Sidebar (hidden on mobile, visible on lg+) -->
+    <aside class="hidden lg:block">
+      <nav class="sticky top-24 space-y-1">
+        <a href="{% url 'frontend:dashboard' %}"
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.resolver_match.url_name == 'dashboard' %}bg-primary-500/10 text-primary-400 border border-primary-500/20{% else %}sidebar-link-inactive{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          Dashboard
+        </a>
+
+        {% if is_candidate %}
+        <a href="{% url 'frontend:applications' %}"
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.resolver_match.url_name == 'applications' or request.resolver_match.url_name == 'application-detail' %}bg-primary-500/10 text-primary-400 border border-primary-500/20{% else %}sidebar-link-inactive{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          My Applications
+        </a>
+        {% endif %}
+
+        {% if is_recruiter %}
+        <a href="{% url 'frontend:pipeline' %}"
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.resolver_match.url_name == 'pipeline' %}bg-primary-500/10 text-primary-400 border border-primary-500/20{% else %}sidebar-link-inactive{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          Pipeline
+        </a>
+        <a href="{% url 'frontend:post-job' %}"
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.resolver_match.url_name == 'post-job' %}bg-primary-500/10 text-primary-400 border border-primary-500/20{% else %}sidebar-link-inactive{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Post a Job
+        </a>
+        {% endif %}
+
+        <a href="{% url 'frontend:notifications' %}"
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.resolver_match.url_name == 'notifications' %}bg-primary-500/10 text-primary-400 border border-primary-500/20{% else %}sidebar-link-inactive{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          Notifications
+          <span x-show="unreadCount > 0" x-text="unreadCount" class="ml-auto bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium"></span>
+        </a>
+
+        <hr class="my-3" style="border-color: var(--hf-border);">
+
+        <a href="{% url 'frontend:settings' %}"
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.resolver_match.url_name == 'settings' %}bg-primary-500/10 text-primary-400 border border-primary-500/20{% else %}sidebar-link-inactive{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          Settings
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <div class="min-w-0">
+      <!-- Page header -->
+      <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-display font-bold" style="color: var(--hf-text-primary);">{% block page_title %}Dashboard{% endblock %}</h1>
+            <p class="mt-1 text-sm" style="color: var(--hf-text-muted);">{% block page_subtitle %}{% endblock %}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            {% block page_actions %}{% endblock %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Page content -->
+      {% block dashboard_content %}{% endblock %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

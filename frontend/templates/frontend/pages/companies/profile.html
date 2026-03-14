@@ -1,0 +1,286 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}Company Profile — HireFlow{% endblock %}
+
+{% block content %}
+<div x-data="companyProfile('{{ company_slug }}')" x-init="init()">
+
+  <!-- ── Loading skeleton ── -->
+  <div x-show="loading" aria-busy="true">
+    <!-- Hero skeleton -->
+    <div class="animate-pulse" style="background: var(--hf-card-bg); border-bottom: 1px solid var(--hf-divider-color);">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex items-start gap-6">
+          <div class="w-20 h-20 bg-white/10 rounded-2xl shrink-0"></div>
+          <div class="flex-1 space-y-3 pt-2">
+            <div class="h-7 bg-white/10 rounded w-1/3"></div>
+            <div class="h-4 bg-white/5 rounded w-1/4"></div>
+            <div class="h-4 bg-white/5 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Content skeleton -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4">
+        <div class="h-4 bg-white/10 rounded"></div>
+        <div class="h-4 bg-white/10 rounded w-5/6"></div>
+        <div class="h-4 bg-white/10 rounded w-4/6"></div>
+      </div>
+      <div class="space-y-3">
+        <div class="h-4 bg-white/10 rounded w-1/2"></div>
+        <div class="h-4 bg-white/5 rounded w-3/4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Loaded state ── -->
+  <div x-show="!loading" x-cloak>
+
+    <!-- Company hero / header -->
+    <div style="background: var(--hf-card-bg); border-bottom: 1px solid var(--hf-divider-color);">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-5">
+          <!-- Logo placeholder -->
+          <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold text-primary-400 shrink-0"
+               style="background: var(--hf-indigo-subtle);">
+            <span x-text="(company.name || '?').charAt(0).toUpperCase()"></span>
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <h1 class="text-2xl font-bold text-white font-display" x-text="company.name"></h1>
+              <!-- Verified badge -->
+              <span x-show="company.is_verified"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                    style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                Verified
+              </span>
+            </div>
+
+            <!-- Meta info pills -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-white/50">
+              <span x-show="company.industry" class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span x-text="company.industry"></span>
+              </span>
+              <span x-show="company.location" class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span x-text="company.location"></span>
+              </span>
+              <span x-show="company.size" class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span x-text="sizeLabel(company.size)"></span>
+              </span>
+              <span x-show="company.website" class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                </svg>
+                <a :href="company.website" target="_blank" rel="noopener"
+                   class="text-primary-400 hover:text-primary-300 transition-colors truncate max-w-xs"
+                   x-text="company.website?.replace(/^https?:\/\//, '')">
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid lg:grid-cols-3 gap-8">
+
+        <!-- Main: description + jobs -->
+        <div class="lg:col-span-2 space-y-8">
+
+          <!-- About -->
+          <div x-show="company.description">
+            <h2 class="text-lg font-semibold text-white font-display mb-3">About <span x-text="company.name"></span></h2>
+            <div class="prose prose-sm max-w-none text-white/60 leading-relaxed whitespace-pre-wrap"
+                 x-text="company.description">
+            </div>
+          </div>
+
+          <!-- Open positions -->
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-white font-display">Open Positions</h2>
+              <span class="text-sm text-white/50"
+                    x-text="`${jobs.length} job${jobs.length !== 1 ? 's' : ''}`">
+              </span>
+            </div>
+
+            <!-- Jobs loading skeleton -->
+            <div x-show="jobsLoading" class="space-y-3 animate-pulse">
+              <template x-for="i in 3" :key="i">
+                <div class="glass-card rounded-xl p-5">
+                  <div class="h-4 bg-white/10 rounded w-2/5 mb-2"></div>
+                  <div class="h-3 bg-white/5 rounded w-1/3"></div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Empty state -->
+            <div x-show="!jobsLoading && jobs.length === 0"
+                 class="rounded-xl py-10 text-center"
+                 style="background: var(--hf-card-bg); border: 1px dashed var(--hf-border);">
+              <p class="text-sm text-white/50">No open positions at this time.</p>
+              <a href="{% url 'frontend:job-board' %}"
+                 class="mt-3 inline-flex items-center text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors">
+                Browse all jobs
+              </a>
+            </div>
+
+            <!-- Job cards -->
+            <div x-show="!jobsLoading && jobs.length > 0" class="space-y-3">
+              <template x-for="job in jobs" :key="job.slug || job.id">
+                <a :href="`/jobs/${job.slug}/`"
+                   class="block glass-card rounded-xl p-5 hover:border-primary-500/30 transition-all group">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors truncate"
+                          x-text="job.title"></h3>
+                      <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/50">
+                        <span x-show="job.location" x-text="job.location"></span>
+                        <span x-show="job.job_type" class="capitalize" x-text="job.job_type?.replace('_', ' ')"></span>
+                        <span x-show="job.experience_level" class="capitalize" x-text="job.experience_level"></span>
+                      </div>
+                    </div>
+                    <div class="shrink-0 flex flex-col items-end gap-1.5">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                            style="background: var(--hf-success-subtle); color: var(--hf-success);">
+                        Open
+                      </span>
+                      <span x-show="job.created_at" class="text-xs text-white/40"
+                            x-text="formatDate(job.created_at)"></span>
+                    </div>
+                  </div>
+                  <div x-show="job.salary_min || job.salary_max" class="mt-3">
+                    <span class="text-sm font-medium text-white/70"
+                          x-text="formatSalary(job.salary_min, job.salary_max, job.currency)"></span>
+                  </div>
+                </a>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar: company details -->
+        <div class="space-y-4">
+          <div class="glass-card rounded-xl p-5">
+            <h3 class="text-sm font-semibold text-white/70 font-display mb-4">Company Info</h3>
+            <dl class="space-y-3 text-sm">
+              <div x-show="company.industry">
+                <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-0.5">Industry</dt>
+                <dd class="text-white/70" x-text="company.industry"></dd>
+              </div>
+              <div x-show="company.size">
+                <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-0.5">Company Size</dt>
+                <dd class="text-white/70" x-text="sizeLabel(company.size)"></dd>
+              </div>
+              <div x-show="company.location">
+                <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-0.5">Headquarters</dt>
+                <dd class="text-white/70" x-text="company.location"></dd>
+              </div>
+              <div x-show="company.website">
+                <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-0.5">Website</dt>
+                <dd>
+                  <a :href="company.website" target="_blank" rel="noopener"
+                     class="text-primary-400 hover:text-primary-300 transition-colors break-all"
+                     x-text="company.website?.replace(/^https?:\/\//, '')">
+                  </a>
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Apply CTA -->
+          <div class="rounded-xl p-5"
+               style="background: var(--hf-indigo-subtle); border: 1px solid var(--hf-indigo);">
+            <h3 class="text-sm font-semibold text-white font-display mb-2">Interested in working here?</h3>
+            <p class="text-xs text-white/50 mb-4">Browse open positions and apply directly.</p>
+            <a href="{% url 'frontend:job-board' %}"
+               class="hf-btn-primary block text-center px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+              Browse All Jobs
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /loaded -->
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function companyProfile(slug) {
+  return {
+    loading: true,
+    jobsLoading: false,
+    company: {},
+    jobs: [],
+
+    async init() {
+      if (!slug) { this.loading = false; return; }
+      try {
+        this.company = await HireFlowAPI.getCompany(slug);
+        await this.loadJobs();
+      } catch (e) {
+        console.error('Failed to load company:', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async loadJobs() {
+      this.jobsLoading = true;
+      try {
+        const data = await HireFlowAPI.listJobs(`company=${slug}&status=published`);
+        this.jobs = data.results || data;
+      } catch (e) {
+        console.error('Failed to load company jobs:', e);
+      } finally {
+        this.jobsLoading = false;
+      }
+    },
+
+    sizeLabel(size) {
+      const labels = {
+        '1-10': '1–10 employees',
+        '11-50': '11–50 employees',
+        '51-200': '51–200 employees',
+        '201-500': '201–500 employees',
+        '501-1000': '501–1,000 employees',
+        '1000+': '1,000+ employees',
+      };
+      return labels[size] || size || '—';
+    },
+
+    formatDate(d) {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    },
+
+    formatSalary(min, max, currency = 'USD') {
+      const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0 });
+      if (min && max) return `${fmt.format(min)} – ${fmt.format(max)}`;
+      if (min) return `From ${fmt.format(min)}`;
+      if (max) return `Up to ${fmt.format(max)}`;
+      return '';
+    },
+  };
+}
+</script>
+{% endblock %}

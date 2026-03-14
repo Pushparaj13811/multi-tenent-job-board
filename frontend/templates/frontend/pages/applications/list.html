@@ -1,0 +1,360 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}My Applications — HireFlow{% endblock %}
+
+{% block page_title %}My Applications{% endblock %}
+{% block page_subtitle %}Track and manage all your job applications{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'frontend:job-board' %}"
+   class="hf-btn-primary inline-flex items-center gap-2">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+  </svg>
+  Find Jobs
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div x-data="applicationsList()" x-init="init()">
+
+  <!-- ── Filter bar ── -->
+  <div class="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+    <!-- Status filter -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <button @click="setFilter('all')"
+              class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+              :class="filter === 'all'
+                ? 'bg-primary-600 text-white'
+                : 'text-white/60 hover:bg-white/5'"
+              :style="filter !== 'all' ? 'border: 1px solid var(--hf-border);' : ''">
+        All
+      </button>
+      <template x-for="s in statusOptions" :key="s.value">
+        <button @click="setFilter(s.value)"
+                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors capitalize"
+                :class="filter === s.value
+                  ? 'bg-primary-600 text-white'
+                  : 'text-white/60 hover:bg-white/5'"
+                :style="filter !== s.value ? 'border: 1px solid var(--hf-border);' : ''">
+          <span x-text="s.label"></span>
+        </button>
+      </template>
+    </div>
+
+    <!-- Result count -->
+    <div class="sm:ml-auto text-sm text-white/50" x-show="!loading">
+      <span x-text="applications.length"></span> application<span x-show="applications.length !== 1">s</span>
+    </div>
+  </div>
+
+  <!-- ── Loading skeleton ── -->
+  <div x-show="loading" aria-busy="true" aria-label="Loading applications">
+    <div class="glass-card overflow-hidden animate-pulse">
+      <div class="divide-y" style="border-color: var(--hf-divider-color);">
+        <template x-for="i in 6" :key="i">
+          <div class="px-6 py-5 flex items-center gap-4">
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-white/5 rounded w-2/5"></div>
+              <div class="h-3 bg-white/5 rounded w-1/4"></div>
+              <div class="h-3 bg-white/5 rounded w-1/3"></div>
+            </div>
+            <div class="space-y-2 text-right">
+              <div class="h-5 bg-white/5 rounded-full w-20"></div>
+              <div class="h-3 bg-white/5 rounded w-16"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Content ── -->
+  <div x-show="!loading" x-cloak>
+
+    <!-- Empty state -->
+    <div x-show="applications.length === 0 && !loading"
+         class="glass-card py-16 flex flex-col items-center text-center px-6">
+      <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+        <svg class="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-semibold text-white font-display mb-1">No applications found</h3>
+      <p class="text-sm text-white/50 mb-5 max-w-sm font-body">
+        <span x-show="filter === 'all'">You haven't applied to any jobs yet. Start browsing!</span>
+        <span x-show="filter !== 'all'">No applications with status "<span x-text="filter" class="capitalize"></span>".</span>
+      </p>
+      <a href="{% url 'frontend:job-board' %}"
+         class="hf-btn-primary inline-flex items-center">
+        Browse Jobs
+      </a>
+    </div>
+
+    <!-- Applications list -->
+    <div x-show="applications.length > 0" class="space-y-3">
+      <template x-for="app in applications" :key="app.id">
+        <div class="glass-card hover:bg-white/[0.04] transition-all">
+          <!-- Desktop layout -->
+          <div class="hidden sm:flex items-center gap-4 px-6 py-5">
+            <!-- Job info -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-sm font-semibold text-white truncate"
+                    x-text="app.job_title || app.job?.title || '—'"></h3>
+              </div>
+              <p class="text-sm text-white/50 truncate"
+                 x-text="app.company_name || app.job?.company?.name || '—'"></p>
+              <div class="mt-2 flex items-center gap-3 text-xs text-white/40">
+                <span class="flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                  Applied <span x-text="formatDate(app.created_at)"></span>
+                </span>
+                <template x-if="app.job?.location">
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span x-text="app.job.location"></span>
+                  </span>
+                </template>
+              </div>
+            </div>
+
+            <!-- Status badge -->
+            <div class="flex flex-col items-end gap-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                    :class="statusColor(app.status)"
+                    x-text="app.status">
+              </span>
+              <span class="text-xs text-white/40" x-text="timeAgo(app.updated_at || app.created_at)"></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2 pl-4" style="border-left: 1px solid var(--hf-divider-color);">
+              <a :href="`/applications/${app.id}/`"
+                 class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-400 rounded-lg hover:bg-primary-500/10 transition-colors" style="border: 1px solid var(--hf-indigo-light);">
+                View
+              </a>
+              {% if is_candidate %}
+              <button x-show="canWithdraw(app.status)"
+                      @click="withdraw(app)"
+                      :disabled="app._withdrawing"
+                      class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-400 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="border: 1px solid var(--hf-danger-subtle);">
+                <span x-show="!app._withdrawing">Withdraw</span>
+                <span x-show="app._withdrawing">Withdrawing...</span>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Mobile layout -->
+          <div class="sm:hidden px-4 py-4">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="min-w-0">
+                <h3 class="text-sm font-semibold text-white truncate"
+                    x-text="app.job_title || app.job?.title || '—'"></h3>
+                <p class="text-xs text-white/50 truncate"
+                   x-text="app.company_name || app.job?.company?.name || '—'"></p>
+              </div>
+              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                    :class="statusColor(app.status)"
+                    x-text="app.status">
+              </span>
+            </div>
+            <div class="text-xs text-white/40 mb-3">
+              Applied <span x-text="formatDate(app.created_at)"></span>
+              &middot; <span x-text="timeAgo(app.updated_at || app.created_at)"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <a :href="`/applications/${app.id}/`"
+                 class="flex-1 text-center px-3 py-1.5 text-sm font-medium text-primary-400 rounded-lg hover:bg-primary-500/10 transition-colors" style="border: 1px solid var(--hf-indigo-light);">
+                View Details
+              </a>
+              {% if is_candidate %}
+              <button x-show="canWithdraw(app.status)"
+                      @click="withdraw(app)"
+                      :disabled="app._withdrawing"
+                      class="flex-1 px-3 py-1.5 text-sm font-medium text-red-400 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50" style="border: 1px solid var(--hf-danger-subtle);">
+                <span x-show="!app._withdrawing">Withdraw</span>
+                <span x-show="app._withdrawing">...</span>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── Pagination ── -->
+    <div x-show="nextCursor || prevCursor" class="mt-6 flex items-center justify-between">
+      <button @click="loadPage(prevCursor)"
+              x-show="prevCursor"
+              class="hf-btn-secondary inline-flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Previous
+      </button>
+      <button @click="loadPage(nextCursor)"
+              x-show="nextCursor"
+              class="hf-btn-secondary inline-flex items-center gap-2">
+        Next
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Withdraw confirm modal -->
+    <div x-show="withdrawTarget"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         aria-modal="true"
+         role="dialog">
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="withdrawTarget = null"></div>
+      <div class="relative rounded-2xl max-w-md w-full p-6" style="background: var(--hf-overlay-bg); border: 1px solid var(--hf-border); backdrop-filter: blur(20px);">
+        <h3 class="text-base font-semibold text-white font-display mb-2">Withdraw Application</h3>
+        <p class="text-sm text-white/50 mb-6 font-body">
+          Are you sure you want to withdraw your application for
+          <strong class="text-white" x-text="withdrawTarget?.job_title || withdrawTarget?.job?.title || 'this job'"></strong>?
+          This action cannot be undone.
+        </p>
+        <div class="flex items-center gap-3 justify-end">
+          <button @click="withdrawTarget = null"
+                  class="hf-btn-secondary">
+            Cancel
+          </button>
+          <button @click="confirmWithdraw()"
+                  class="hf-btn-danger">
+            Withdraw
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /loaded -->
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applicationsList() {
+  return {
+    loading: true,
+    applications: [],
+    filter: 'all',
+    nextCursor: null,
+    prevCursor: null,
+    withdrawTarget: null,
+
+    statusOptions: [
+      { value: 'applied',     label: 'Applied' },
+      { value: 'reviewing',   label: 'Reviewing' },
+      { value: 'shortlisted', label: 'Shortlisted' },
+      { value: 'interview',   label: 'Interview' },
+      { value: 'offered',     label: 'Offered' },
+      { value: 'rejected',    label: 'Rejected' },
+      { value: 'withdrawn',   label: 'Withdrawn' },
+    ],
+
+    async init() {
+      await this.loadPage(null);
+    },
+
+    async loadPage(cursor) {
+      this.loading = true;
+      try {
+        let params = '';
+        const parts = [];
+        if (this.filter !== 'all') parts.push(`status=${this.filter}`);
+        if (cursor) parts.push(`cursor=${cursor}`);
+        if (parts.length) params = parts.join('&');
+
+        const data = await HireFlowAPI.listApplications(params);
+        this.applications = data.results || data;
+        this.nextCursor = this.extractCursor(data.next);
+        this.prevCursor = this.extractCursor(data.previous);
+      } catch (e) {
+        console.error('Failed to load applications:', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async setFilter(status) {
+      this.filter = status;
+      this.nextCursor = null;
+      this.prevCursor = null;
+      await this.loadPage(null);
+    },
+
+    canWithdraw(status) {
+      return ['applied', 'reviewing', 'shortlisted'].includes(status);
+    },
+
+    withdraw(app) {
+      this.withdrawTarget = app;
+    },
+
+    async confirmWithdraw() {
+      if (!this.withdrawTarget) return;
+      const app = this.withdrawTarget;
+      this.withdrawTarget = null;
+      app._withdrawing = true;
+      try {
+        await HireFlowAPI.withdrawApplication(app.id);
+        this.applications = this.applications.filter(a => a.id !== app.id);
+      } catch (e) {
+        console.error('Withdraw failed:', e);
+        app._withdrawing = false;
+      }
+    },
+
+    extractCursor(url) {
+      if (!url) return null;
+      try {
+        const u = new URL(url, window.location.origin);
+        return u.searchParams.get('cursor');
+      } catch { return null; }
+    },
+
+    formatDate(d) {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    },
+
+    timeAgo(d) {
+      if (!d) return '';
+      const now = new Date();
+      const date = new Date(d);
+      const seconds = Math.floor((now - date) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days}d ago`;
+      return this.formatDate(d);
+    },
+
+    statusColor(s) {
+      const colors = {
+        applied: 'bg-blue-500/10 text-blue-400',
+        reviewing: 'bg-yellow-500/10 text-yellow-400',
+        shortlisted: 'bg-indigo-500/10 text-indigo-400',
+        interview: 'bg-purple-500/10 text-purple-400',
+        offered: 'bg-green-500/10 text-green-400',
+        rejected: 'bg-red-500/10 text-red-400',
+        withdrawn: 'bg-white/5 text-white/60',
+      };
+      return colors[s] || 'bg-white/5 text-white/60';
+    },
+  };
+}
+</script>
+{% endblock %}

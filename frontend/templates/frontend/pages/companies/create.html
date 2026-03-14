@@ -1,0 +1,267 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Create Company — HireFlow{% endblock %}
+
+{% block page_title %}Create Company{% endblock %}
+{% block page_subtitle %}Set up your company profile on HireFlow{% endblock %}
+
+{% block dashboard_content %}
+<div x-data="createCompany()" x-init="init()">
+  <div class="max-w-2xl">
+
+    <form @submit.prevent="submit()" class="space-y-6" novalidate>
+
+      <!-- Company name -->
+      <div>
+        <label for="company-name" class="block text-sm font-medium text-white/70 mb-1.5">
+          Company Name <span class="text-red-400">*</span>
+        </label>
+        <input id="company-name"
+               type="text"
+               x-model="form.name"
+               @input="generateSlug()"
+               placeholder="Acme Corp"
+               autocomplete="organization"
+               required
+               class="hf-input w-full px-3.5 py-2.5 text-sm rounded-lg transition"
+               :class="errors.name ? 'border-red-400/50 focus:ring-red-400' : ''">
+        <p x-show="errors.name" class="mt-1.5 text-xs text-red-400" x-text="errors.name"></p>
+      </div>
+
+      <!-- Slug (auto-generated, editable) -->
+      <div>
+        <label for="company-slug" class="block text-sm font-medium text-white/70 mb-1.5">
+          URL Slug <span class="text-red-400">*</span>
+        </label>
+        <div class="flex items-center rounded-lg overflow-hidden"
+             style="border: 1px solid var(--hf-border);"
+             :class="errors.slug ? 'border-red-400/50' : ''">
+          <span class="px-3.5 py-2.5 text-sm text-white/50 whitespace-nowrap select-none"
+                style="background: var(--hf-card-bg); border-right: 1px solid var(--hf-border);">
+            hireflow.io/companies/
+          </span>
+          <input id="company-slug"
+                 type="text"
+                 x-model="form.slug"
+                 @input="slugTouched = true"
+                 placeholder="acme-corp"
+                 required
+                 class="flex-1 px-3 py-2.5 text-sm text-white placeholder-white/45 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-r-lg bg-transparent">
+        </div>
+        <p class="mt-1.5 text-xs text-white/40">Only lowercase letters, numbers, and hyphens.</p>
+        <p x-show="errors.slug" class="mt-1 text-xs text-red-400" x-text="errors.slug"></p>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="company-description" class="block text-sm font-medium text-white/70 mb-1.5">
+          Description
+        </label>
+        <textarea id="company-description"
+                  x-model="form.description"
+                  rows="4"
+                  placeholder="Tell candidates about your company, culture, and mission..."
+                  class="hf-input w-full px-3.5 py-2.5 text-sm rounded-lg resize-none transition">
+        </textarea>
+        <div class="mt-1 flex justify-end">
+          <span class="text-xs text-white/40"
+                :class="form.description.length > 1800 ? 'text-orange-400' : ''"
+                x-text="`${form.description.length} / 2000`">
+          </span>
+        </div>
+      </div>
+
+      <!-- Website -->
+      <div>
+        <label for="company-website" class="block text-sm font-medium text-white/70 mb-1.5">
+          Website
+        </label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+            </svg>
+          </div>
+          <input id="company-website"
+                 type="url"
+                 x-model="form.website"
+                 placeholder="https://acme.com"
+                 class="hf-input w-full pl-10 pr-3.5 py-2.5 text-sm rounded-lg transition"
+                 :class="errors.website ? 'border-red-400/50 focus:ring-red-400' : ''">
+        </div>
+        <p x-show="errors.website" class="mt-1.5 text-xs text-red-400" x-text="errors.website"></p>
+      </div>
+
+      <!-- Industry + Size row -->
+      <div class="grid sm:grid-cols-2 gap-4">
+        <!-- Industry -->
+        <div>
+          <label for="company-industry" class="block text-sm font-medium text-white/70 mb-1.5">
+            Industry
+          </label>
+          <input id="company-industry"
+                 type="text"
+                 x-model="form.industry"
+                 placeholder="e.g. Software, Healthcare..."
+                 class="hf-input w-full px-3.5 py-2.5 text-sm rounded-lg transition">
+        </div>
+
+        <!-- Company size -->
+        <div>
+          <label for="company-size" class="block text-sm font-medium text-white/70 mb-1.5">
+            Company Size
+          </label>
+          <div class="relative">
+            <select id="company-size"
+                    x-model="form.size"
+                    class="hf-input w-full appearance-none px-3.5 py-2.5 text-sm rounded-lg pr-9 transition">
+              <option value="">Select size</option>
+              <option value="1-10">1–10 employees</option>
+              <option value="11-50">11–50 employees</option>
+              <option value="51-200">51–200 employees</option>
+              <option value="201-500">201–500 employees</option>
+              <option value="501-1000">501–1,000 employees</option>
+              <option value="1000+">1,000+ employees</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+              <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div>
+        <label for="company-location" class="block text-sm font-medium text-white/70 mb-1.5">
+          Headquarters Location
+        </label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <input id="company-location"
+                 type="text"
+                 x-model="form.location"
+                 placeholder="San Francisco, CA"
+                 class="hf-input w-full pl-10 pr-3.5 py-2.5 text-sm rounded-lg transition">
+        </div>
+      </div>
+
+      <!-- Error alert -->
+      <div x-show="errorMsg"
+           class="flex items-start gap-3 p-4 rounded-lg"
+           style="background: var(--hf-danger-subtle); border: 1px solid var(--hf-danger);">
+        <svg class="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm text-red-400" x-text="errorMsg"></p>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex items-center gap-3 pt-2">
+        <button type="submit"
+                :disabled="submitting"
+                class="hf-btn-primary inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+          <svg x-show="submitting" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span x-show="!submitting">Create Company</span>
+          <span x-show="submitting">Creating...</span>
+        </button>
+        <a href="{% url 'frontend:dashboard' %}"
+           class="hf-btn-ghost px-4 py-2.5 text-sm font-medium transition-colors">
+          Cancel
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function createCompany() {
+  return {
+    submitting: false,
+    slugTouched: false,
+    errorMsg: '',
+    errors: {},
+
+    form: {
+      name: '',
+      slug: '',
+      description: '',
+      website: '',
+      industry: '',
+      size: '',
+      location: '',
+    },
+
+    init() {
+      // No async init needed
+    },
+
+    generateSlug() {
+      if (this.slugTouched) return;
+      this.form.slug = this.form.name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 60);
+    },
+
+    validate() {
+      this.errors = {};
+      if (!this.form.name.trim()) {
+        this.errors.name = 'Company name is required.';
+      }
+      if (!this.form.slug.trim()) {
+        this.errors.slug = 'Slug is required.';
+      } else if (!/^[a-z0-9-]+$/.test(this.form.slug)) {
+        this.errors.slug = 'Slug may only contain lowercase letters, numbers, and hyphens.';
+      }
+      if (this.form.website && !/^https?:\/\/.+/.test(this.form.website)) {
+        this.errors.website = 'Please enter a valid URL starting with http:// or https://';
+      }
+      return Object.keys(this.errors).length === 0;
+    },
+
+    async submit() {
+      this.errorMsg = '';
+      if (!this.validate()) return;
+
+      this.submitting = true;
+      try {
+        const payload = {};
+        Object.entries(this.form).forEach(([k, v]) => {
+          if (v !== '') payload[k] = v;
+        });
+
+        const company = await HireFlowAPI.createCompany(payload);
+        const slug = company.slug || this.form.slug;
+        window.location.href = `/companies/${slug}/`;
+      } catch (e) {
+        this.errorMsg = e.message || 'Failed to create company. Please try again.';
+        // Map field errors from API
+        if (e.data) {
+          Object.keys(e.data).forEach(field => {
+            const msgs = e.data[field];
+            this.errors[field] = Array.isArray(msgs) ? msgs[0] : msgs;
+          });
+        }
+      } finally {
+        this.submitting = false;
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

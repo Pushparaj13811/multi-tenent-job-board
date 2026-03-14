@@ -1,0 +1,502 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Post a New Job | HireFlow{% endblock %}
+
+{% block page_title %}Post a New Job{% endblock %}
+{% block page_subtitle %}Fill in the details below to create a new job listing.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'frontend:job-board' %}" class="hf-btn-secondary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+  </svg>
+  Back to Jobs
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div
+  x-data="postJob()"
+  x-init="init()"
+  class="max-w-3xl"
+>
+  <form @submit.prevent="submitForm()" novalidate class="space-y-8">
+    {% csrf_token %}
+
+    <!-- ─── Company selection ─── -->
+    <div class="glass-card rounded-xl p-6">
+      <h2 class="text-base font-semibold text-white font-display mb-4">Company</h2>
+
+      <div>
+        <label for="company" class="block text-sm font-medium text-white/70 mb-1.5">
+          Company <span class="text-red-400">*</span>
+        </label>
+
+        <!-- Loading state -->
+        <div x-show="companiesLoading" class="h-10 bg-white/5 rounded-lg animate-pulse"></div>
+
+        <!-- Select -->
+        <select
+          id="company"
+          x-show="!companiesLoading"
+          x-model="form.company"
+          @change="clearError('company')"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+          :class="errors.company ? 'border-red-400/50 focus:ring-red-400' : ''"
+        >
+          <option value="">Select a company…</option>
+          <template x-for="company in companies" :key="company.id || company.slug">
+            <option :value="company.id" x-text="company.name"></option>
+          </template>
+        </select>
+        <p x-show="companiesLoading === false && companies.length === 0" class="mt-1.5 text-xs text-amber-400">
+          You are not a member of any company yet.
+          <a href="{% url 'frontend:create-company' %}" class="underline hover:text-amber-300">Create one first.</a>
+        </p>
+        <p x-show="errors.company" class="mt-1.5 text-sm text-red-400" x-text="errors.company"></p>
+      </div>
+    </div>
+
+    <!-- ─── Basic info ─── -->
+    <div class="glass-card rounded-xl p-6 space-y-5">
+      <h2 class="text-base font-semibold text-white font-display">Basic Information</h2>
+
+      <!-- Title -->
+      <div>
+        <label for="title" class="block text-sm font-medium text-white/70 mb-1.5">
+          Job Title <span class="text-red-400">*</span>
+        </label>
+        <input
+          id="title"
+          type="text"
+          x-model="form.title"
+          @input="generateSlug(); clearError('title')"
+          placeholder="e.g. Senior Backend Engineer"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+          :class="errors.title ? 'border-red-400/50 focus:ring-red-400' : ''"
+        >
+        <p x-show="errors.title" class="mt-1.5 text-sm text-red-400" x-text="errors.title"></p>
+      </div>
+
+      <!-- Slug -->
+      <div>
+        <label for="slug" class="block text-sm font-medium text-white/70 mb-1.5">
+          URL Slug <span class="text-red-400">*</span>
+        </label>
+        <div class="flex rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-500"
+             style="border: 1px solid var(--hf-card-border);"
+             :class="errors.slug ? 'border-red-400/50' : ''">
+          <span class="inline-flex items-center px-3 py-2.5 text-sm text-white/50 select-none"
+                style="background: var(--hf-card-bg); border-right: 1px solid var(--hf-card-border);">/jobs/</span>
+          <input
+            id="slug"
+            type="text"
+            x-model="form.slug"
+            @input="clearError('slug')"
+            placeholder="senior-backend-engineer"
+            class="flex-1 px-3 py-2.5 text-sm text-white placeholder-white/45 focus:outline-none bg-transparent"
+            :class="errors.slug ? 'bg-red-500/5' : ''"
+          >
+        </div>
+        <p class="mt-1 text-xs text-white/50">Auto-generated from title. You can edit this.</p>
+        <p x-show="errors.slug" class="mt-1 text-sm text-red-400" x-text="errors.slug"></p>
+      </div>
+
+      <!-- Location + Remote -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="location" class="block text-sm font-medium text-white/70 mb-1.5">
+            Location <span class="text-red-400">*</span>
+          </label>
+          <input
+            id="location"
+            type="text"
+            x-model="form.location"
+            @input="clearError('location')"
+            placeholder="e.g. San Francisco, CA"
+            class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            :class="errors.location ? 'border-red-400/50 focus:ring-red-400' : ''"
+          >
+          <p x-show="errors.location" class="mt-1.5 text-sm text-red-400" x-text="errors.location"></p>
+        </div>
+
+        <div class="flex items-end">
+          <label class="flex items-center gap-3 cursor-pointer pb-2.5">
+            <input
+              type="checkbox"
+              x-model="form.is_remote"
+              class="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+              style="border-color: var(--hf-card-border); background: var(--hf-card-bg);"
+            >
+            <div>
+              <span class="block text-sm font-medium text-white/70">Remote Position</span>
+              <span class="block text-xs text-white/50">This job can be done remotely</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Job details ─── -->
+    <div class="glass-card rounded-xl p-6 space-y-5">
+      <h2 class="text-base font-semibold text-white font-display">Job Details</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- Job type -->
+        <div>
+          <label for="job_type" class="block text-sm font-medium text-white/70 mb-1.5">
+            Job Type <span class="text-red-400">*</span>
+          </label>
+          <select
+            id="job_type"
+            x-model="form.job_type"
+            @change="clearError('job_type')"
+            class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            :class="errors.job_type ? 'border-red-400/50 focus:ring-red-400' : ''"
+          >
+            <option value="">Select type…</option>
+            <option value="full_time">Full Time</option>
+            <option value="part_time">Part Time</option>
+            <option value="contract">Contract</option>
+            <option value="internship">Internship</option>
+            <option value="remote">Remote</option>
+          </select>
+          <p x-show="errors.job_type" class="mt-1.5 text-sm text-red-400" x-text="errors.job_type"></p>
+        </div>
+
+        <!-- Experience level -->
+        <div>
+          <label for="experience_level" class="block text-sm font-medium text-white/70 mb-1.5">
+            Experience Level <span class="text-red-400">*</span>
+          </label>
+          <select
+            id="experience_level"
+            x-model="form.experience_level"
+            @change="clearError('experience_level')"
+            class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            :class="errors.experience_level ? 'border-red-400/50 focus:ring-red-400' : ''"
+          >
+            <option value="">Select level…</option>
+            <option value="junior">Junior</option>
+            <option value="mid">Mid-Level</option>
+            <option value="senior">Senior</option>
+            <option value="lead">Lead</option>
+          </select>
+          <p x-show="errors.experience_level" class="mt-1.5 text-sm text-red-400" x-text="errors.experience_level"></p>
+        </div>
+      </div>
+
+      <!-- Salary -->
+      <div>
+        <label class="block text-sm font-medium text-white/70 mb-1.5">Salary Range</label>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label for="salary_min" class="block text-xs text-white/50 mb-1">Min</label>
+            <input
+              id="salary_min"
+              type="number"
+              x-model.number="form.salary_min"
+              placeholder="50000"
+              min="0"
+              class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            >
+          </div>
+          <div>
+            <label for="salary_max" class="block text-xs text-white/50 mb-1">Max</label>
+            <input
+              id="salary_max"
+              type="number"
+              x-model.number="form.salary_max"
+              placeholder="80000"
+              min="0"
+              class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            >
+          </div>
+          <div>
+            <label for="currency" class="block text-xs text-white/50 mb-1">Currency</label>
+            <select
+              id="currency"
+              x-model="form.currency"
+              class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            >
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="INR">INR</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deadline -->
+      <div>
+        <label for="deadline" class="block text-sm font-medium text-white/70 mb-1.5">Application Deadline</label>
+        <input
+          id="deadline"
+          type="date"
+          x-model="form.deadline"
+          class="hf-input block w-full sm:w-64 px-3 py-2.5 rounded-lg text-sm transition"
+        >
+        <p class="mt-1 text-xs text-white/50">Leave blank for no deadline.</p>
+      </div>
+    </div>
+
+    <!-- ─── Descriptions ─── -->
+    <div class="glass-card rounded-xl p-6 space-y-5">
+      <h2 class="text-base font-semibold text-white font-display">Job Content</h2>
+
+      <!-- Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium text-white/70 mb-1.5">
+          Job Description <span class="text-red-400">*</span>
+        </label>
+        <textarea
+          id="description"
+          x-model="form.description"
+          @input="clearError('description')"
+          rows="8"
+          placeholder="Describe the role, what the team does, and why someone would want this job…"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition resize-y"
+          :class="errors.description ? 'border-red-400/50 focus:ring-red-400' : ''"
+        ></textarea>
+        <p x-show="errors.description" class="mt-1.5 text-sm text-red-400" x-text="errors.description"></p>
+      </div>
+
+      <!-- Requirements -->
+      <div>
+        <label for="requirements" class="block text-sm font-medium text-white/70 mb-1.5">Requirements</label>
+        <textarea
+          id="requirements"
+          x-model="form.requirements"
+          rows="5"
+          placeholder="List the qualifications, experience, and skills required…"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition resize-y"
+        ></textarea>
+      </div>
+
+      <!-- Responsibilities -->
+      <div>
+        <label for="responsibilities" class="block text-sm font-medium text-white/70 mb-1.5">Responsibilities</label>
+        <textarea
+          id="responsibilities"
+          x-model="form.responsibilities"
+          rows="5"
+          placeholder="List the day-to-day responsibilities of this role…"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition resize-y"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- ─── Skills ─── -->
+    <div class="glass-card rounded-xl p-6">
+      <h2 class="text-base font-semibold text-white font-display mb-4">Skills</h2>
+      <p class="text-sm text-white/50 mb-3">Add required skills. Press Enter or comma to add a tag.</p>
+
+      <!-- Tag input -->
+      <div
+        class="flex flex-wrap gap-2 min-h-[44px] px-3 py-2 rounded-lg focus-within:ring-2 focus-within:ring-primary-500 cursor-text"
+        style="border: 1px solid var(--hf-card-border); background: var(--hf-card-bg);"
+        @click="$refs.skillInput.focus()"
+      >
+        <template x-for="(skill, index) in form.skills" :key="index">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium"
+                style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);">
+            <span x-text="skill"></span>
+            <button
+              type="button"
+              @click.stop="removeSkill(index)"
+              class="ml-1 w-4 h-4 flex items-center justify-center text-primary-400 hover:text-primary-300 rounded-full transition-colors"
+              :aria-label="'Remove ' + skill"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </span>
+        </template>
+        <input
+          x-ref="skillInput"
+          type="text"
+          x-model="skillInput"
+          @keydown.enter.prevent="addSkill()"
+          @keydown.comma.prevent="addSkill()"
+          @keydown.backspace="skillInput === '' && removeSkill(form.skills.length - 1)"
+          placeholder="Type a skill and press Enter…"
+          class="flex-1 min-w-[160px] text-sm text-white placeholder-white/45 focus:outline-none bg-transparent py-0.5"
+        >
+      </div>
+    </div>
+
+    <!-- ─── Submit ─── -->
+    <div class="flex items-center justify-between gap-4 pb-8">
+      <!-- General error -->
+      <p x-show="submitError" class="text-sm text-red-400" x-text="submitError"></p>
+      <div class="flex gap-3 ml-auto">
+        <a
+          href="{% url 'frontend:job-board' %}"
+          class="hf-btn-secondary inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          :disabled="submitting"
+          class="hf-btn-primary inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <span x-show="!submitting">Post Job</span>
+          <span x-show="submitting" class="flex items-center gap-2">
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Posting…
+          </span>
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function postJob() {
+  return {
+    companies: [],
+    companiesLoading: true,
+    submitting: false,
+    submitError: '',
+    skillInput: '',
+    form: {
+      company: '',
+      title: '',
+      slug: '',
+      description: '',
+      requirements: '',
+      responsibilities: '',
+      skills: [],
+      job_type: '',
+      experience_level: '',
+      location: '',
+      is_remote: false,
+      salary_min: '',
+      salary_max: '',
+      currency: 'USD',
+      deadline: '',
+    },
+    errors: {},
+
+    async init() {
+      await this.loadCompanies();
+    },
+
+    async loadCompanies() {
+      this.companiesLoading = true;
+      try {
+        const data = await HireFlowAPI.listCompanies('member=true');
+        this.companies = data.results || data.data || (Array.isArray(data) ? data : []);
+        // Pre-select if only one company
+        if (this.companies.length === 1) {
+          this.form.company = this.companies[0].id;
+        }
+      } catch (err) {
+        console.error('Failed to load companies:', err);
+        this.$root.error('Failed to load companies.');
+      } finally {
+        this.companiesLoading = false;
+      }
+    },
+
+    generateSlug() {
+      this.form.slug = this.form.title
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    },
+
+    addSkill() {
+      const skill = this.skillInput.trim().replace(/,$/, '').trim();
+      if (skill && !this.form.skills.includes(skill)) {
+        this.form.skills.push(skill);
+      }
+      this.skillInput = '';
+    },
+
+    removeSkill(index) {
+      if (index >= 0 && index < this.form.skills.length) {
+        this.form.skills.splice(index, 1);
+      }
+    },
+
+    clearError(field) {
+      delete this.errors[field];
+    },
+
+    validate() {
+      this.errors = {};
+      if (!this.form.company) this.errors.company = 'Please select a company.';
+      if (!this.form.title.trim()) this.errors.title = 'Job title is required.';
+      if (!this.form.slug.trim()) this.errors.slug = 'URL slug is required.';
+      if (!this.form.location.trim()) this.errors.location = 'Location is required.';
+      if (!this.form.job_type) this.errors.job_type = 'Please select a job type.';
+      if (!this.form.experience_level) this.errors.experience_level = 'Please select an experience level.';
+      if (!this.form.description.trim()) this.errors.description = 'Job description is required.';
+      return Object.keys(this.errors).length === 0;
+    },
+
+    async submitForm() {
+      this.submitError = '';
+      if (!this.validate()) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      this.submitting = true;
+      try {
+        const payload = {
+          company: this.form.company,
+          title: this.form.title.trim(),
+          slug: this.form.slug.trim(),
+          description: this.form.description.trim(),
+          requirements: this.form.requirements.trim() || null,
+          responsibilities: this.form.responsibilities.trim() || null,
+          skills: this.form.skills,
+          job_type: this.form.job_type,
+          experience_level: this.form.experience_level,
+          location: this.form.location.trim(),
+          is_remote: this.form.is_remote,
+          currency: this.form.currency,
+        };
+        if (this.form.salary_min !== '') payload.salary_min = this.form.salary_min;
+        if (this.form.salary_max !== '') payload.salary_max = this.form.salary_max;
+        if (this.form.deadline) payload.deadline = this.form.deadline;
+
+        const job = await HireFlowAPI.createJob(payload);
+        this.$root.success('Job posted successfully!');
+        // Redirect to job detail page
+        window.location.href = '/jobs/' + (job.slug || this.form.slug) + '/';
+      } catch (err) {
+        console.error('Failed to post job:', err);
+        if (err.data && typeof err.data === 'object') {
+          // Map API validation errors to form fields
+          Object.keys(err.data).forEach(key => {
+            const messages = err.data[key];
+            this.errors[key] = Array.isArray(messages) ? messages[0] : messages;
+          });
+        }
+        this.submitError = err.message || 'Failed to post job. Please check the errors above.';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } finally {
+        this.submitting = false;
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

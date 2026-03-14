@@ -1,0 +1,356 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Settings — HireFlow{% endblock %}
+
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}Manage your account and preferences{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-2xl space-y-6"
+     x-data="{
+       editing: false,
+       saving: false,
+       changingPassword: false,
+       savingPassword: false,
+       profileForm: {
+         first_name: '{{ current_user.first_name|escapejs }}',
+         last_name: '{{ current_user.last_name|escapejs }}',
+         phone: '{{ current_user.phone|default_if_none:""|escapejs }}',
+       },
+       passwordForm: {
+         current_password: '',
+         new_password: '',
+         new_password_confirm: '',
+       },
+       profileErrors: {},
+       passwordErrors: {},
+       async saveProfile() {
+         this.saving = true;
+         this.profileErrors = {};
+         try {
+           await HireFlowAPI._patch('/api/auth/me/', this.profileForm);
+           this.editing = false;
+           $dispatch('show-toast', { message: 'Profile updated successfully.', type: 'success' });
+           setTimeout(() => location.reload(), 600);
+         } catch (err) {
+           this.profileErrors = $store.app ? extractErrors(err) : {};
+           if (err.message) {
+             $dispatch('show-toast', { message: err.message, type: 'error' });
+           }
+         } finally {
+           this.saving = false;
+         }
+       },
+       async changePassword() {
+         this.savingPassword = true;
+         this.passwordErrors = {};
+         if (this.passwordForm.new_password !== this.passwordForm.new_password_confirm) {
+           this.passwordErrors.new_password_confirm = 'Passwords do not match.';
+           this.savingPassword = false;
+           return;
+         }
+         try {
+           await HireFlowAPI._post('/api/auth/change-password/', {
+             current_password: this.passwordForm.current_password,
+             new_password: this.passwordForm.new_password,
+           });
+           this.changingPassword = false;
+           this.passwordForm = { current_password: '', new_password: '', new_password_confirm: '' };
+           $dispatch('show-toast', { message: 'Password changed successfully.', type: 'success' });
+         } catch (err) {
+           this.passwordErrors = extractErrors(err);
+           if (err.message) {
+             $dispatch('show-toast', { message: err.message, type: 'error' });
+           }
+         } finally {
+           this.savingPassword = false;
+         }
+       },
+     }"
+     @show-toast.window="showToast($event.detail.message, $event.detail.type)"
+>
+
+  <!-- ── Profile information ── -->
+  <div class="glass-card overflow-hidden">
+    <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--hf-divider-color);">
+      <div>
+        <h2 class="text-base font-semibold text-white font-display">Profile Information</h2>
+        <p class="mt-0.5 text-sm text-white/50 font-body">Your personal details.</p>
+      </div>
+      <button
+        x-show="!editing"
+        @click="editing = true"
+        class="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+      >Edit</button>
+    </div>
+
+    <!-- Read-only view -->
+    <div x-show="!editing" class="px-6 py-5 space-y-5">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-primary-500/10 text-primary-400 flex items-center justify-center text-2xl font-bold shrink-0">
+          {{ current_user.first_name|default:current_user.email|truncatechars:1|upper }}
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-white">
+            {% if current_user.first_name or current_user.last_name %}
+              {{ current_user.first_name }} {{ current_user.last_name }}
+            {% else %}
+              {{ current_user.username }}
+            {% endif %}
+          </p>
+          <p class="text-sm text-white/50">{{ current_user.email }}</p>
+        </div>
+      </div>
+
+      <hr style="border-color: var(--hf-divider-color);">
+
+      <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div>
+          <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">First Name</dt>
+          <dd class="text-white font-medium">{{ current_user.first_name|default:"—" }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Last Name</dt>
+          <dd class="text-white font-medium">{{ current_user.last_name|default:"—" }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Username</dt>
+          <dd class="text-white font-medium font-mono text-sm">{{ current_user.username }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Email Address</dt>
+          <dd class="flex items-center gap-2">
+            <span class="text-white font-medium break-all">{{ current_user.email }}</span>
+            {% if current_user.email_verified %}
+              <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold shrink-0" style="background: var(--hf-success-subtle); color: var(--hf-success);">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Verified
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold shrink-0" style="background: var(--hf-warning-subtle, rgba(234, 179, 8, 0.1)); color: var(--hf-warning);">Unverified</span>
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Account Role</dt>
+          <dd>
+            {% if is_recruiter %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                Recruiter
+              </span>
+            {% elif is_candidate %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Candidate
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white/5 text-white/60">
+                {{ current_user.role|default:"User"|capfirst }}
+              </span>
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Member Since</dt>
+          <dd class="text-white font-medium">{{ current_user.date_joined|date:"N j, Y" }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Edit form -->
+    <form x-show="editing" @submit.prevent="saveProfile()" class="px-6 py-5 space-y-4">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label for="edit-first-name" class="block text-sm font-medium text-white/70 mb-1">First Name</label>
+          <input id="edit-first-name" type="text" x-model="profileForm.first_name"
+                 class="hf-input w-full"
+                 :class="profileErrors.first_name ? 'border-red-500' : ''">
+          <p x-show="profileErrors.first_name" x-text="profileErrors.first_name" class="mt-1 text-xs text-red-400" role="alert"></p>
+        </div>
+        <div>
+          <label for="edit-last-name" class="block text-sm font-medium text-white/70 mb-1">Last Name</label>
+          <input id="edit-last-name" type="text" x-model="profileForm.last_name"
+                 class="hf-input w-full"
+                 :class="profileErrors.last_name ? 'border-red-500' : ''">
+          <p x-show="profileErrors.last_name" x-text="profileErrors.last_name" class="mt-1 text-xs text-red-400" role="alert"></p>
+        </div>
+      </div>
+      <div>
+        <label for="edit-phone" class="block text-sm font-medium text-white/70 mb-1">Phone Number</label>
+        <input id="edit-phone" type="tel" x-model="profileForm.phone"
+               class="hf-input w-full"
+               :class="profileErrors.phone ? 'border-red-500' : ''">
+        <p x-show="profileErrors.phone" x-text="profileErrors.phone" class="mt-1 text-xs text-red-400" role="alert"></p>
+      </div>
+      <div class="flex items-center gap-3 pt-2">
+        <button type="submit" :disabled="saving"
+                class="hf-btn-primary inline-flex items-center disabled:opacity-50">
+          <svg x-show="saving" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          <span x-text="saving ? 'Saving...' : 'Save Changes'"></span>
+        </button>
+        <button type="button" @click="editing = false" class="hf-btn-ghost">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Change Password ── -->
+  <div class="glass-card overflow-hidden">
+    <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--hf-divider-color);">
+      <h2 class="text-base font-semibold text-white font-display">Password</h2>
+      <button
+        x-show="!changingPassword"
+        @click="changingPassword = true"
+        class="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+      >Change Password</button>
+    </div>
+    <div x-show="!changingPassword" class="px-6 py-4">
+      <p class="text-sm text-white/50 font-body">Last changed: unknown</p>
+    </div>
+    <form x-show="changingPassword" @submit.prevent="changePassword()" class="px-6 py-5 space-y-4">
+      <div>
+        <label for="current-password" class="block text-sm font-medium text-white/70 mb-1">Current Password</label>
+        <input id="current-password" type="password" x-model="passwordForm.current_password" required
+               class="hf-input w-full"
+               :class="passwordErrors.current_password ? 'border-red-500' : ''">
+        <p x-show="passwordErrors.current_password" x-text="passwordErrors.current_password" class="mt-1 text-xs text-red-400" role="alert"></p>
+      </div>
+      <div>
+        <label for="new-password" class="block text-sm font-medium text-white/70 mb-1">New Password</label>
+        <input id="new-password" type="password" x-model="passwordForm.new_password" required
+               class="hf-input w-full"
+               :class="passwordErrors.new_password ? 'border-red-500' : ''">
+        <p x-show="passwordErrors.new_password" x-text="passwordErrors.new_password" class="mt-1 text-xs text-red-400" role="alert"></p>
+      </div>
+      <div>
+        <label for="confirm-new-password" class="block text-sm font-medium text-white/70 mb-1">Confirm New Password</label>
+        <input id="confirm-new-password" type="password" x-model="passwordForm.new_password_confirm" required
+               class="hf-input w-full"
+               :class="passwordErrors.new_password_confirm ? 'border-red-500' : ''">
+        <p x-show="passwordErrors.new_password_confirm" x-text="passwordErrors.new_password_confirm" class="mt-1 text-xs text-red-400" role="alert"></p>
+      </div>
+      <div class="flex items-center gap-3 pt-2">
+        <button type="submit" :disabled="savingPassword"
+                class="hf-btn-primary inline-flex items-center disabled:opacity-50">
+          <svg x-show="savingPassword" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          <span x-text="savingPassword ? 'Changing...' : 'Change Password'"></span>
+        </button>
+        <button type="button" @click="changingPassword = false; passwordForm = { current_password: '', new_password: '', new_password_confirm: '' }; passwordErrors = {}" class="hf-btn-ghost">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Email verification notice ── -->
+  {% if not current_user.email_verified %}
+  <div class="flex items-start gap-3 p-4 rounded-xl" style="background: var(--hf-warning-subtle, rgba(234, 179, 8, 0.08)); border: 1px solid var(--hf-warning);">
+    <svg class="w-5 h-5 shrink-0 mt-0.5" style="color: var(--hf-warning);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-medium" style="color: var(--hf-warning);">Email not verified</p>
+      <p class="text-sm mt-0.5" style="color: var(--hf-warning);">
+        Please verify your email address to unlock full access.
+        <a href="{% url 'frontend:verify-email' %}" class="font-medium underline hover:no-underline ml-1" style="color: var(--hf-warning);">Resend verification</a>
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Account actions ── -->
+  <div class="glass-card overflow-hidden">
+    <div class="px-6 py-4" style="border-bottom: 1px solid var(--hf-divider-color);">
+      <h2 class="text-base font-semibold text-white font-display">Account</h2>
+    </div>
+    <div class="px-6 py-4 space-y-3">
+      {% if is_recruiter %}
+      <a href="{% url 'frontend:create-company' %}"
+         class="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group" style="border: 1px solid var(--hf-border);">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--hf-indigo-subtle);">
+            <svg class="w-4 h-4" style="color: var(--hf-indigo-light);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-white">Create a Company</p>
+            <p class="text-xs text-white/50">Set up a new company profile</p>
+          </div>
+        </div>
+        <svg class="w-4 h-4 text-white/40 group-hover:text-white/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endif %}
+
+      <a href="{% url 'frontend:notifications' %}"
+         class="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group" style="border: 1px solid var(--hf-border);">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--hf-indigo-subtle);">
+            <svg class="w-4 h-4" style="color: var(--hf-indigo-light);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-white">Notifications</p>
+            <p class="text-xs text-white/50">View your notification history</p>
+          </div>
+        </div>
+        <svg class="w-4 h-4 text-white/40 group-hover:text-white/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+
+      <a href="{% url 'frontend:logout' %}"
+         class="flex items-center justify-between p-3 rounded-lg hover:bg-red-500/10 transition-colors group" style="border: 1px solid var(--hf-danger);">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--hf-danger-subtle);">
+            <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-red-400">Sign Out</p>
+            <p class="text-xs text-red-400/50">Log out of your account</p>
+          </div>
+        </div>
+        <svg class="w-4 h-4 text-red-400/30 group-hover:text-red-400/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Danger zone ── -->
+  <div class="rounded-2xl overflow-hidden" style="background: var(--hf-card-bg); border: 1px solid var(--hf-danger); backdrop-filter: blur(20px);">
+    <div class="px-6 py-4" style="border-bottom: 1px solid var(--hf-danger-subtle);">
+      <h2 class="text-base font-semibold text-red-400 font-display">Danger Zone</h2>
+    </div>
+    <div class="px-6 py-5">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-white">Delete Account</p>
+          <p class="text-sm text-white/50 mt-0.5 font-body">
+            Permanently delete your account and all associated data. This cannot be undone.
+          </p>
+        </div>
+        <button disabled
+                class="shrink-0 px-4 py-2 text-sm font-medium text-red-400 rounded-lg opacity-50 cursor-not-allowed" style="border: 1px solid var(--hf-danger);"
+                title="Contact support to delete your account">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /max-w-2xl -->
+{% endblock %}

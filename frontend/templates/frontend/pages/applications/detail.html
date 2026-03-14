@@ -1,0 +1,447 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Application Details — HireFlow{% endblock %}
+
+{% block page_title %}Application Details{% endblock %}
+{% block page_subtitle %}View and manage this application{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'frontend:applications' %}"
+   class="hf-btn-secondary inline-flex items-center gap-2">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+  </svg>
+  Back
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div x-data="applicationDetail('{{ application_id }}')" x-init="init()">
+
+  <!-- ── Loading skeleton ── -->
+  <div x-show="loading" aria-busy="true">
+    <div class="grid lg:grid-cols-3 gap-6 animate-pulse">
+      <div class="lg:col-span-2 space-y-6">
+        <div class="glass-card p-6">
+          <div class="h-6 bg-white/5 rounded w-1/2 mb-4"></div>
+          <div class="h-4 bg-white/5 rounded w-1/3 mb-2"></div>
+          <div class="h-4 bg-white/5 rounded w-1/4"></div>
+        </div>
+        <div class="glass-card p-6">
+          <div class="h-5 bg-white/5 rounded w-1/3 mb-4"></div>
+          <div class="h-3 bg-white/5 rounded mb-2"></div>
+          <div class="h-3 bg-white/5 rounded w-5/6 mb-2"></div>
+          <div class="h-3 bg-white/5 rounded w-4/6"></div>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div class="glass-card p-6">
+          <div class="h-5 bg-white/5 rounded w-1/2 mb-4"></div>
+          <div class="space-y-3">
+            <div class="h-8 bg-white/5 rounded"></div>
+            <div class="h-8 bg-white/5 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Loaded state ── -->
+  <div x-show="!loading" x-cloak class="grid lg:grid-cols-3 gap-6">
+
+    <!-- Main column -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Application header card -->
+      <div class="glass-card p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-display"
+                x-text="app.job_title || app.job?.title || '—'"></h2>
+            <p class="text-white/50 mt-1 font-body"
+               x-text="app.company_name || app.job?.company?.name || '—'"></p>
+          </div>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize"
+                :class="statusColor(app.status)"
+                x-text="app.status">
+          </span>
+        </div>
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/50">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Applied <span x-text="formatDate(app.created_at)" class="font-medium text-white/70 ml-1"></span>
+          </span>
+          <span class="flex items-center gap-1.5" x-show="app.job?.location">
+            <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            <span x-text="app.job?.location" class="font-medium text-white/70"></span>
+          </span>
+          <span class="flex items-center gap-1.5" x-show="app.job?.job_type">
+            <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01"/>
+            </svg>
+            <span x-text="app.job?.job_type" class="font-medium text-white/70 capitalize"></span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Status timeline / progress bar -->
+      <div class="glass-card p-6">
+        <h3 class="text-sm font-semibold text-white/70 mb-5 font-display">Application Progress</h3>
+        <div class="relative">
+          <!-- Progress line -->
+          <div class="absolute left-4 top-0 bottom-0 w-0.5" style="background: var(--hf-border);" aria-hidden="true"></div>
+          <div class="space-y-6">
+            <template x-for="step in timeline" :key="step.status">
+              <div class="relative flex items-start gap-4">
+                <!-- Status dot -->
+                <div class="relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                     :class="step.reached
+                       ? (step.current ? 'bg-primary-600 ring-4 ring-primary-500/20' : 'bg-primary-500')
+                       : ''"
+                     :style="!step.reached ? 'background: var(--hf-card-bg); border: 2px solid var(--hf-border);' : ''">
+                  <template x-if="step.reached && !step.current">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </template>
+                  <template x-if="step.current">
+                    <span class="w-2.5 h-2.5 bg-white rounded-full"></span>
+                  </template>
+                </div>
+                <!-- Step info -->
+                <div class="pt-1 pb-1">
+                  <p class="text-sm font-medium capitalize"
+                     :class="step.reached ? 'text-white' : 'text-white/40'"
+                     x-text="step.label">
+                  </p>
+                  <p class="text-xs text-white/40 mt-0.5" x-show="step.current">
+                    Current status &mdash; <span x-text="timeAgo(app.updated_at || app.created_at)"></span>
+                  </p>
+                  <p class="text-xs text-red-400 mt-0.5" x-show="step.status === 'rejected' && app.status === 'rejected'">
+                    Application was not progressed further.
+                  </p>
+                  <p class="text-xs text-white/40 mt-0.5" x-show="step.status === 'withdrawn' && app.status === 'withdrawn'">
+                    You withdrew this application.
+                  </p>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cover letter / notes from applicant -->
+      <div class="glass-card p-6" x-show="app.cover_letter">
+        <h3 class="text-sm font-semibold text-white/70 mb-3 font-display">Cover Letter</h3>
+        <div class="prose prose-sm max-w-none text-white/60 whitespace-pre-wrap leading-relaxed font-body"
+             x-text="app.cover_letter">
+        </div>
+      </div>
+
+      <!-- Recruiter notes (visible to recruiter) -->
+      {% if is_recruiter %}
+      <div class="glass-card p-6">
+        <h3 class="text-sm font-semibold text-white/70 mb-3 font-display">Recruiter Notes</h3>
+        <textarea
+          x-model="recruiterNotes"
+          rows="4"
+          placeholder="Add private notes about this applicant..."
+          class="hf-input w-full resize-none">
+        </textarea>
+        <div class="mt-3 flex justify-end">
+          <button @click="saveNotes()"
+                  :disabled="savingNotes"
+                  class="hf-btn-primary inline-flex items-center gap-2 disabled:opacity-50">
+            <span x-show="!savingNotes">Save Notes</span>
+            <span x-show="savingNotes">Saving...</span>
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /main column -->
+
+    <!-- Sidebar -->
+    <div class="space-y-4">
+
+      <!-- Applicant info (recruiter view) -->
+      {% if is_recruiter %}
+      <div class="glass-card p-5">
+        <h3 class="text-sm font-semibold text-white/70 mb-4 font-display">Applicant</h3>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-primary-500/10 text-primary-400 flex items-center justify-center text-sm font-bold shrink-0">
+            <span x-text="(app.applicant_name || app.candidate?.full_name || '?').charAt(0).toUpperCase()"></span>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-white"
+               x-text="app.applicant_name || app.candidate?.full_name || '—'"></p>
+            <p class="text-xs text-white/50"
+               x-text="app.applicant_email || app.candidate?.email || '—'"></p>
+          </div>
+        </div>
+        <template x-if="app.resume_url || app.resume">
+          <a :href="app.resume_url || app.resume"
+             target="_blank" rel="noopener"
+             class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-400 rounded-lg hover:bg-primary-500/10 transition-colors w-full" style="border: 1px solid var(--hf-indigo-light);">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Download Resume
+          </a>
+        </template>
+      </div>
+      {% endif %}
+
+      <!-- Status update panel (recruiter only) -->
+      {% if is_recruiter %}
+      <div class="glass-card p-5">
+        <h3 class="text-sm font-semibold text-white/70 mb-4 font-display">Update Status</h3>
+        <div class="space-y-2">
+          <template x-for="action in availableActions" :key="action.status">
+            <button @click="updateStatus(action.status)"
+                    :disabled="updating || app.status === action.status"
+                    class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    :class="app.status === action.status
+                      ? 'bg-white/5 text-white/40 cursor-default'
+                      : action.danger
+                        ? 'text-red-400 hover:bg-red-500/10'
+                        : 'text-white/70 hover:bg-white/5'"
+                    :style="app.status === action.status
+                      ? 'border: 1px solid var(--hf-divider-color);'
+                      : action.danger
+                        ? 'border: 1px solid var(--hf-danger-subtle);'
+                        : 'border: 1px solid var(--hf-border);'">
+              <span x-text="action.label"></span>
+              <svg x-show="app.status === action.status" class="w-4 h-4 text-primary-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+          </template>
+        </div>
+        <p x-show="updating" class="mt-2 text-xs text-white/40 text-center">Updating...</p>
+      </div>
+      {% endif %}
+
+      <!-- Candidate: withdraw action -->
+      {% if is_candidate %}
+      <div class="glass-card p-5" x-show="canWithdraw">
+        <h3 class="text-sm font-semibold text-white/70 mb-3 font-display">Actions</h3>
+        <button @click="showWithdraw = true"
+                class="w-full px-3 py-2.5 text-sm font-medium text-red-400 rounded-lg hover:bg-red-500/10 transition-colors" style="border: 1px solid var(--hf-danger-subtle);">
+          Withdraw Application
+        </button>
+      </div>
+      {% endif %}
+
+      <!-- Application meta -->
+      <div class="glass-card p-5">
+        <h3 class="text-sm font-semibold text-white/70 mb-3 font-display">Details</h3>
+        <dl class="space-y-2.5 text-sm">
+          <div class="flex justify-between gap-2">
+            <dt class="text-white/50">Application ID</dt>
+            <dd class="font-mono text-xs text-white/70 truncate" x-text="app.id ? app.id.split('-')[0] + '...' : '—'"></dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt class="text-white/50">Applied</dt>
+            <dd class="text-white/70" x-text="formatDate(app.created_at)"></dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt class="text-white/50">Last updated</dt>
+            <dd class="text-white/70" x-text="formatDate(app.updated_at)"></dd>
+          </div>
+          <div class="flex justify-between gap-2" x-show="app.job?.slug">
+            <dt class="text-white/50">Job listing</dt>
+            <dd>
+              <a :href="`/jobs/${app.job?.slug}/`"
+                 class="text-primary-400 hover:text-primary-300 transition-colors">
+                View Job
+              </a>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div><!-- /sidebar -->
+  </div><!-- /grid -->
+
+  <!-- Withdraw confirm modal (candidate) -->
+  {% if is_candidate %}
+  <div x-show="showWithdraw"
+       x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       aria-modal="true" role="dialog">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="showWithdraw = false"></div>
+    <div class="relative rounded-2xl max-w-md w-full p-6" style="background: var(--hf-overlay-bg); border: 1px solid var(--hf-border); backdrop-filter: blur(20px);">
+      <h3 class="text-base font-semibold text-white font-display mb-2">Withdraw Application</h3>
+      <p class="text-sm text-white/50 mb-6 font-body">
+        Are you sure you want to withdraw your application for
+        <strong class="text-white" x-text="app.job_title || app.job?.title || 'this job'"></strong>?
+        This cannot be undone.
+      </p>
+      <div class="flex items-center gap-3 justify-end">
+        <button @click="showWithdraw = false"
+                class="hf-btn-secondary">
+          Cancel
+        </button>
+        <button @click="withdrawApplication()"
+                :disabled="withdrawing"
+                class="hf-btn-danger disabled:opacity-50">
+          <span x-show="!withdrawing">Withdraw</span>
+          <span x-show="withdrawing">Withdrawing...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applicationDetail(applicationId) {
+  return {
+    loading: true,
+    app: {},
+    recruiterNotes: '',
+    savingNotes: false,
+    updating: false,
+    showWithdraw: false,
+    withdrawing: false,
+
+    statusOrder: ['applied', 'reviewing', 'shortlisted', 'interview', 'offered'],
+
+    availableActions: [
+      { status: 'reviewing',   label: 'Mark as Reviewing',   danger: false },
+      { status: 'shortlisted', label: 'Shortlist',           danger: false },
+      { status: 'interview',   label: 'Schedule Interview',  danger: false },
+      { status: 'offered',     label: 'Make an Offer',       danger: false },
+      { status: 'rejected',    label: 'Reject',              danger: true },
+    ],
+
+    async init() {
+      if (!applicationId) {
+        this.loading = false;
+        return;
+      }
+      try {
+        // Try to load from list endpoint filtering by id, or direct endpoint if available
+        const data = await HireFlowAPI.listApplications(`id=${applicationId}`);
+        const results = data.results || data;
+        if (Array.isArray(results) && results.length > 0) {
+          this.app = results[0];
+        } else if (!Array.isArray(results)) {
+          this.app = data;
+        }
+        this.recruiterNotes = this.app.recruiter_notes || '';
+      } catch (e) {
+        console.error('Failed to load application:', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    get timeline() {
+      const currentStatus = this.app.status;
+      const isRejected = currentStatus === 'rejected';
+      const isWithdrawn = currentStatus === 'withdrawn';
+      const currentIdx = this.statusOrder.indexOf(currentStatus);
+
+      const steps = this.statusOrder.map((s, idx) => ({
+        status: s,
+        label: s.charAt(0).toUpperCase() + s.slice(1),
+        reached: isRejected ? idx <= Math.max(currentIdx, 0) : idx <= currentIdx,
+        current: s === currentStatus && !isRejected && !isWithdrawn,
+      }));
+
+      if (isRejected) {
+        steps.push({ status: 'rejected', label: 'Rejected', reached: true, current: true });
+      }
+      if (isWithdrawn) {
+        steps.push({ status: 'withdrawn', label: 'Withdrawn', reached: true, current: true });
+      }
+      return steps;
+    },
+
+    get canWithdraw() {
+      return ['applied', 'reviewing', 'shortlisted'].includes(this.app.status);
+    },
+
+    async updateStatus(status) {
+      this.updating = true;
+      try {
+        const updated = await HireFlowAPI.updateApplicationStatus(
+          applicationId, status, this.recruiterNotes
+        );
+        this.app = { ...this.app, ...updated };
+      } catch (e) {
+        console.error('Status update failed:', e);
+      } finally {
+        this.updating = false;
+      }
+    },
+
+    async saveNotes() {
+      this.savingNotes = true;
+      try {
+        await HireFlowAPI.updateApplicationStatus(
+          applicationId, this.app.status, this.recruiterNotes
+        );
+      } catch (e) {
+        console.error('Save notes failed:', e);
+      } finally {
+        this.savingNotes = false;
+      }
+    },
+
+    async withdrawApplication() {
+      this.withdrawing = true;
+      try {
+        await HireFlowAPI.withdrawApplication(applicationId);
+        window.location.href = '{% url "frontend:applications" %}';
+      } catch (e) {
+        console.error('Withdraw failed:', e);
+        this.withdrawing = false;
+        this.showWithdraw = false;
+      }
+    },
+
+    formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    },
+
+    timeAgo(d) {
+      if (!d) return '';
+      const now = new Date();
+      const date = new Date(d);
+      const seconds = Math.floor((now - date) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days}d ago`;
+      return this.formatDate(d);
+    },
+
+    statusColor(s) {
+      const colors = {
+        applied: 'bg-blue-500/10 text-blue-400',
+        reviewing: 'bg-yellow-500/10 text-yellow-400',
+        shortlisted: 'bg-indigo-500/10 text-indigo-400',
+        interview: 'bg-purple-500/10 text-purple-400',
+        offered: 'bg-green-500/10 text-green-400',
+        rejected: 'bg-red-500/10 text-red-400',
+        withdrawn: 'bg-white/5 text-white/60',
+      };
+      return colors[s] || 'bg-white/5 text-white/60';
+    },
+  };
+}
+</script>
+{% endblock %}

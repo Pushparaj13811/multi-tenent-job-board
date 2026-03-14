@@ -1,0 +1,214 @@
+{% extends "frontend/layouts/auth.html" %}
+
+{% block title %}Verify Your Email — HireFlow{% endblock %}
+{% block meta_description %}Please verify your email address to complete your HireFlow account setup.{% endblock %}
+
+{% block auth_title %}Verify your email{% endblock %}
+
+{% block auth_subtitle %}
+  We sent a link to
+  {% if email %}
+    <span class="font-medium text-white">{{ email }}</span>
+  {% else %}
+    your email address
+  {% endif %}
+{% endblock %}
+
+{% block auth_content %}
+<div
+  x-data="emailVerification()"
+  x-init="init()"
+>
+  <!-- Status: pending verification -->
+  <div x-show="status === 'pending'" x-cloak>
+    <!-- Envelope illustration -->
+    <div class="flex justify-center mb-6">
+      <div class="w-20 h-20 rounded-full flex items-center justify-center" style="background: var(--hf-indigo-subtle);">
+        <svg class="w-10 h-10 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+      </div>
+    </div>
+
+    <p class="text-sm text-white/60 text-center leading-relaxed mb-2">
+      Check your inbox and click the verification link to activate your account.
+      The link will expire in <span class="font-medium text-white">24 hours</span>.
+    </p>
+    <p class="text-xs text-white/40 text-center mb-8">
+      Don't forget to check your spam or junk folder.
+    </p>
+
+    <!-- Resend -->
+    <div class="text-center">
+      <p class="text-sm text-white/60 mb-3">Didn't receive the email?</p>
+      <button
+        type="button"
+        @click="resend()"
+        :disabled="resendCooldown > 0 || resending"
+        class="hf-btn-secondary inline-flex items-center gap-2"
+      >
+        <svg
+          class="w-4 h-4 text-white/50"
+          :class="{ 'animate-spin': resending }"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581
+                   m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        <span x-text="resendCooldown > 0 ? `Resend in ${resendCooldown}s` : (resending ? 'Sending…' : 'Resend email')"></span>
+      </button>
+
+      <!-- Resend success notice -->
+      <p
+        x-show="resendSuccess"
+        x-transition
+        class="mt-3 text-xs text-emerald-400 font-medium"
+        role="status"
+      >
+        Verification email sent! Please check your inbox.
+      </p>
+
+      <!-- Resend error notice -->
+      <p
+        x-show="resendError"
+        x-transition
+        class="mt-3 text-xs text-red-400 font-medium"
+        x-text="resendError"
+        role="alert"
+      ></p>
+    </div>
+  </div>
+
+  <!-- Status: verifying token (link clicked) -->
+  <div x-show="status === 'verifying'" x-cloak class="text-center py-4">
+    <div class="flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background: var(--hf-indigo-subtle);">
+        <svg class="w-8 h-8 text-primary-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+      </div>
+    </div>
+    <p class="text-sm text-white/60">Verifying your email address…</p>
+  </div>
+
+  <!-- Status: verified -->
+  <div x-show="status === 'verified'" x-cloak class="text-center py-2">
+    <div class="flex justify-center mb-6">
+      <div class="w-20 h-20 rounded-full flex items-center justify-center" style="background: var(--hf-success-subtle);">
+        <svg class="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+    </div>
+    <h3 class="text-lg font-semibold text-white mb-1">Email verified!</h3>
+    <p class="text-sm text-white/60 mb-8">Your account is now active. You can sign in.</p>
+    <a
+      href="{% url 'frontend:login' %}"
+      class="hf-btn-primary inline-flex items-center gap-2 px-6 py-2.5"
+    >
+      Go to sign in
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- Status: error -->
+  <div x-show="status === 'error'" x-cloak class="text-center py-2">
+    <div class="flex justify-center mb-6">
+      <div class="w-20 h-20 rounded-full flex items-center justify-center" style="background: var(--hf-danger-subtle);">
+        <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+    </div>
+    <h3 class="text-lg font-semibold text-white mb-1">Verification failed</h3>
+    <p class="text-sm text-white/60 mb-2" x-text="errorMessage"></p>
+    <p class="text-xs text-white/40 mb-8">The link may have expired or already been used.</p>
+    <button
+      type="button"
+      @click="status = 'pending'; errorMessage = ''"
+      class="hf-btn-secondary inline-flex items-center gap-2 px-5 py-2.5"
+    >
+      Request a new link
+    </button>
+  </div>
+
+  <!-- Back to login -->
+  <div class="mt-8 pt-6 border-t border-white/6 text-center" x-show="status !== 'verified'">
+    <a href="{% url 'frontend:login' %}" class="text-sm text-white/40 hover:text-white/60 transition-colors">
+      &larr; Back to sign in
+    </a>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  function emailVerification() {
+    return {
+      // 'pending' | 'verifying' | 'verified' | 'error'
+      status: 'pending',
+      errorMessage: '',
+      resending: false,
+      resendSuccess: false,
+      resendError: '',
+      resendCooldown: 0,
+      _cooldownTimer: null,
+
+      init() {
+        // Auto-verify if a token is present in the URL query string
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (token) {
+          this.verifyToken(token);
+        }
+      },
+
+      async verifyToken(token) {
+        this.status = 'verifying';
+        try {
+          await HireFlowAPI._post('/api/auth/verify-email/', { token });
+          this.status = 'verified';
+        } catch (err) {
+          this.status = 'error';
+          this.errorMessage = (err && err.message) ? err.message : 'The verification link is invalid or has expired.';
+        }
+      },
+
+      async resend() {
+        if (this.resendCooldown > 0 || this.resending) return;
+        this.resending = true;
+        this.resendSuccess = false;
+        this.resendError = '';
+        try {
+          await HireFlowAPI._post('/api/auth/resend-verification/', {});
+          this.resendSuccess = true;
+          this._startCooldown(60);
+        } catch (err) {
+          this.resendError = (err && err.message) ? err.message : 'Failed to resend email. Please try again.';
+        } finally {
+          this.resending = false;
+        }
+      },
+
+      _startCooldown(seconds) {
+        this.resendCooldown = seconds;
+        clearInterval(this._cooldownTimer);
+        this._cooldownTimer = setInterval(() => {
+          this.resendCooldown--;
+          if (this.resendCooldown <= 0) {
+            clearInterval(this._cooldownTimer);
+            this.resendCooldown = 0;
+          }
+        }, 1000);
+      },
+    };
+  }
+</script>
+{% endblock %}
+{% endblock %}

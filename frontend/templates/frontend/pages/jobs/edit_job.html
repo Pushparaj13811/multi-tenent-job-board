@@ -1,0 +1,627 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Edit Job | HireFlow{% endblock %}
+
+{% block page_title %}Edit Job{% endblock %}
+{% block page_subtitle %}Update the details for this job listing.{% endblock %}
+
+{% block page_actions %}
+<div x-data class="flex items-center gap-3">
+  <a
+    href="/jobs/{{ job_slug }}/"
+    class="hf-btn-secondary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+  >
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+    </svg>
+    View Job
+  </a>
+</div>
+{% endblock %}
+
+{% block dashboard_content %}
+<div
+  x-data="editJob('{{ job_slug }}')"
+  x-init="init()"
+  class="max-w-3xl"
+>
+
+  <!-- Loading skeleton -->
+  <div x-show="loading" class="space-y-6 animate-pulse">
+    <div class="glass-card rounded-xl p-6">
+      <div class="h-5 bg-white/10 rounded w-24 mb-4"></div>
+      <div class="h-10 bg-white/5 rounded-lg"></div>
+    </div>
+    <div class="glass-card rounded-xl p-6 space-y-4">
+      <div class="h-5 bg-white/10 rounded w-32 mb-2"></div>
+      <div class="h-10 bg-white/5 rounded-lg"></div>
+      <div class="h-10 bg-white/5 rounded-lg"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="h-10 bg-white/5 rounded-lg"></div>
+        <div class="h-10 bg-white/5 rounded-lg"></div>
+      </div>
+    </div>
+    <div class="glass-card rounded-xl p-6 space-y-4">
+      <div class="h-5 bg-white/10 rounded w-28 mb-2"></div>
+      <div class="h-32 bg-white/5 rounded-lg"></div>
+      <div class="h-24 bg-white/5 rounded-lg"></div>
+    </div>
+  </div>
+
+  <!-- Error state -->
+  <div x-show="!loading && loadError" class="rounded-xl p-6 text-center" style="background: var(--hf-danger-subtle); border: 1px solid var(--hf-danger);">
+    <svg class="w-10 h-10 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <h3 class="text-base font-semibold text-red-400 font-display mb-1">Failed to load job</h3>
+    <p class="text-sm text-red-400/80 mb-4" x-text="loadError"></p>
+    <button @click="init()" class="hf-btn-danger inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+      Try Again
+    </button>
+  </div>
+
+  <!-- Form -->
+  <form
+    x-show="!loading && !loadError"
+    @submit.prevent="submitForm()"
+    novalidate
+    class="space-y-8"
+  >
+    {% csrf_token %}
+
+    <!-- ─── Status banner ─── -->
+    <div
+      class="flex items-center justify-between px-5 py-4 rounded-xl"
+      :class="{
+        '': true
+      }"
+      :style="form.status === 'draft' ? 'background: var(--hf-card-bg); border: 1px solid var(--hf-card-border);' :
+              form.status === 'published' ? 'background: var(--hf-success-subtle); border: 1px solid var(--hf-success);' :
+              'background: var(--hf-danger-subtle); border: 1px solid var(--hf-danger);'"
+    >
+      <div class="flex items-center gap-3">
+        <span
+          class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide"
+          :style="form.status === 'draft' ? 'background: var(--hf-card-border); color: var(--hf-text-secondary);' :
+                  form.status === 'published' ? 'background: var(--hf-success-subtle); color: var(--hf-success);' :
+                  'background: var(--hf-danger-subtle); color: var(--hf-danger);'"
+          x-text="form.status || 'draft'"
+        ></span>
+        <span class="text-sm text-white/60">
+          <span x-show="form.status === 'draft'">This job is a draft and not visible to candidates.</span>
+          <span x-show="form.status === 'published'">This job is live and accepting applications.</span>
+          <span x-show="form.status === 'closed'">This job is closed and no longer accepting applications.</span>
+        </span>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="flex gap-2 shrink-0">
+        <button
+          type="button"
+          x-show="form.status === 'draft'"
+          @click="publishJob()"
+          :disabled="actionLoading"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-50 transition-colors"
+          style="background: var(--hf-success-subtle); color: var(--hf-success); border: 1px solid var(--hf-success);"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span x-show="!actionLoading">Publish</span>
+          <span x-show="actionLoading">Publishing…</span>
+        </button>
+        <button
+          type="button"
+          x-show="form.status === 'published'"
+          @click="closeJob()"
+          :disabled="actionLoading"
+          class="hf-btn-danger inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-50 transition-colors"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+          <span x-show="!actionLoading">Close Job</span>
+          <span x-show="actionLoading">Closing…</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── Basic info ─── -->
+    <div class="glass-card rounded-xl p-6 space-y-5">
+      <h2 class="text-base font-semibold text-white font-display">Basic Information</h2>
+
+      <!-- Title -->
+      <div>
+        <label for="title" class="block text-sm font-medium text-white/70 mb-1.5">
+          Job Title <span class="text-red-400">*</span>
+        </label>
+        <input
+          id="title"
+          type="text"
+          x-model="form.title"
+          @input="clearError('title')"
+          placeholder="e.g. Senior Backend Engineer"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+          :class="errors.title ? 'border-red-400/50 focus:ring-red-400' : ''"
+        >
+        <p x-show="errors.title" class="mt-1.5 text-sm text-red-400" x-text="errors.title"></p>
+      </div>
+
+      <!-- Slug -->
+      <div>
+        <label for="slug" class="block text-sm font-medium text-white/70 mb-1.5">
+          URL Slug <span class="text-red-400">*</span>
+        </label>
+        <div class="flex rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-500"
+             style="border: 1px solid var(--hf-card-border);"
+             :class="errors.slug ? 'border-red-400/50' : ''">
+          <span class="inline-flex items-center px-3 py-2.5 text-sm text-white/50 select-none"
+                style="background: var(--hf-card-bg); border-right: 1px solid var(--hf-card-border);">/jobs/</span>
+          <input
+            id="slug"
+            type="text"
+            x-model="form.slug"
+            @input="clearError('slug')"
+            placeholder="senior-backend-engineer"
+            class="flex-1 px-3 py-2.5 text-sm text-white placeholder-white/45 focus:outline-none bg-transparent"
+            :class="errors.slug ? 'bg-red-500/5' : ''"
+          >
+        </div>
+        <p class="mt-1 text-xs text-white/50">Changing the slug will break existing links to this job.</p>
+        <p x-show="errors.slug" class="mt-1 text-sm text-red-400" x-text="errors.slug"></p>
+      </div>
+
+      <!-- Location + Remote -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="location" class="block text-sm font-medium text-white/70 mb-1.5">
+            Location <span class="text-red-400">*</span>
+          </label>
+          <input
+            id="location"
+            type="text"
+            x-model="form.location"
+            @input="clearError('location')"
+            placeholder="e.g. San Francisco, CA"
+            class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            :class="errors.location ? 'border-red-400/50 focus:ring-red-400' : ''"
+          >
+          <p x-show="errors.location" class="mt-1.5 text-sm text-red-400" x-text="errors.location"></p>
+        </div>
+
+        <div class="flex items-end">
+          <label class="flex items-center gap-3 cursor-pointer pb-2.5">
+            <input
+              type="checkbox"
+              x-model="form.is_remote"
+              class="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+              style="border-color: var(--hf-card-border); background: var(--hf-card-bg);"
+            >
+            <div>
+              <span class="block text-sm font-medium text-white/70">Remote Position</span>
+              <span class="block text-xs text-white/50">This job can be done remotely</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Job details ─── -->
+    <div class="glass-card rounded-xl p-6 space-y-5">
+      <h2 class="text-base font-semibold text-white font-display">Job Details</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <!-- Job type -->
+        <div>
+          <label for="job_type" class="block text-sm font-medium text-white/70 mb-1.5">
+            Job Type <span class="text-red-400">*</span>
+          </label>
+          <select
+            id="job_type"
+            x-model="form.job_type"
+            @change="clearError('job_type')"
+            class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            :class="errors.job_type ? 'border-red-400/50 focus:ring-red-400' : ''"
+          >
+            <option value="">Select type…</option>
+            <option value="full_time">Full Time</option>
+            <option value="part_time">Part Time</option>
+            <option value="contract">Contract</option>
+            <option value="internship">Internship</option>
+            <option value="remote">Remote</option>
+          </select>
+          <p x-show="errors.job_type" class="mt-1.5 text-sm text-red-400" x-text="errors.job_type"></p>
+        </div>
+
+        <!-- Experience level -->
+        <div>
+          <label for="experience_level" class="block text-sm font-medium text-white/70 mb-1.5">
+            Experience Level <span class="text-red-400">*</span>
+          </label>
+          <select
+            id="experience_level"
+            x-model="form.experience_level"
+            @change="clearError('experience_level')"
+            class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            :class="errors.experience_level ? 'border-red-400/50 focus:ring-red-400' : ''"
+          >
+            <option value="">Select level…</option>
+            <option value="junior">Junior</option>
+            <option value="mid">Mid-Level</option>
+            <option value="senior">Senior</option>
+            <option value="lead">Lead</option>
+          </select>
+          <p x-show="errors.experience_level" class="mt-1.5 text-sm text-red-400" x-text="errors.experience_level"></p>
+        </div>
+      </div>
+
+      <!-- Salary -->
+      <div>
+        <label class="block text-sm font-medium text-white/70 mb-1.5">Salary Range</label>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label for="salary_min" class="block text-xs text-white/50 mb-1">Min</label>
+            <input
+              id="salary_min"
+              type="number"
+              x-model.number="form.salary_min"
+              placeholder="50000"
+              min="0"
+              class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            >
+          </div>
+          <div>
+            <label for="salary_max" class="block text-xs text-white/50 mb-1">Max</label>
+            <input
+              id="salary_max"
+              type="number"
+              x-model.number="form.salary_max"
+              placeholder="80000"
+              min="0"
+              class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            >
+          </div>
+          <div>
+            <label for="currency" class="block text-xs text-white/50 mb-1">Currency</label>
+            <select
+              id="currency"
+              x-model="form.currency"
+              class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition"
+            >
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="INR">INR</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deadline -->
+      <div>
+        <label for="deadline" class="block text-sm font-medium text-white/70 mb-1.5">Application Deadline</label>
+        <input
+          id="deadline"
+          type="date"
+          x-model="form.deadline"
+          class="hf-input block w-full sm:w-64 px-3 py-2.5 rounded-lg text-sm transition"
+        >
+        <p class="mt-1 text-xs text-white/50">Leave blank for no deadline.</p>
+      </div>
+    </div>
+
+    <!-- ─── Descriptions ─── -->
+    <div class="glass-card rounded-xl p-6 space-y-5">
+      <h2 class="text-base font-semibold text-white font-display">Job Content</h2>
+
+      <!-- Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium text-white/70 mb-1.5">
+          Job Description <span class="text-red-400">*</span>
+        </label>
+        <textarea
+          id="description"
+          x-model="form.description"
+          @input="clearError('description')"
+          rows="8"
+          placeholder="Describe the role, what the team does, and why someone would want this job…"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition resize-y"
+          :class="errors.description ? 'border-red-400/50 focus:ring-red-400' : ''"
+        ></textarea>
+        <p x-show="errors.description" class="mt-1.5 text-sm text-red-400" x-text="errors.description"></p>
+      </div>
+
+      <!-- Requirements -->
+      <div>
+        <label for="requirements" class="block text-sm font-medium text-white/70 mb-1.5">Requirements</label>
+        <textarea
+          id="requirements"
+          x-model="form.requirements"
+          rows="5"
+          placeholder="List the qualifications, experience, and skills required…"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition resize-y"
+        ></textarea>
+      </div>
+
+      <!-- Responsibilities -->
+      <div>
+        <label for="responsibilities" class="block text-sm font-medium text-white/70 mb-1.5">Responsibilities</label>
+        <textarea
+          id="responsibilities"
+          x-model="form.responsibilities"
+          rows="5"
+          placeholder="List the day-to-day responsibilities of this role…"
+          class="hf-input block w-full px-3 py-2.5 rounded-lg text-sm transition resize-y"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- ─── Skills ─── -->
+    <div class="glass-card rounded-xl p-6">
+      <h2 class="text-base font-semibold text-white font-display mb-4">Skills</h2>
+      <p class="text-sm text-white/50 mb-3">Add required skills. Press Enter or comma to add a tag.</p>
+
+      <div
+        class="flex flex-wrap gap-2 min-h-[44px] px-3 py-2 rounded-lg focus-within:ring-2 focus-within:ring-primary-500 cursor-text"
+        style="border: 1px solid var(--hf-card-border); background: var(--hf-card-bg);"
+        @click="$refs.skillInput.focus()"
+      >
+        <template x-for="(skill, index) in form.skills" :key="index">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium"
+                style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);">
+            <span x-text="skill"></span>
+            <button
+              type="button"
+              @click.stop="removeSkill(index)"
+              class="ml-1 w-4 h-4 flex items-center justify-center text-primary-400 hover:text-primary-300 rounded-full transition-colors"
+              :aria-label="'Remove ' + skill"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </span>
+        </template>
+        <input
+          x-ref="skillInput"
+          type="text"
+          x-model="skillInput"
+          @keydown.enter.prevent="addSkill()"
+          @keydown.comma.prevent="addSkill()"
+          @keydown.backspace="skillInput === '' && removeSkill(form.skills.length - 1)"
+          placeholder="Type a skill and press Enter…"
+          class="flex-1 min-w-[160px] text-sm text-white placeholder-white/45 focus:outline-none bg-transparent py-0.5"
+        >
+      </div>
+    </div>
+
+    <!-- ─── Danger zone ─── -->
+    <div class="rounded-xl p-6"
+         style="background: var(--hf-danger-subtle); border: 1px solid var(--hf-danger);"
+         x-show="form.status === 'draft'">
+      <h2 class="text-base font-semibold text-red-400 font-display mb-2">Danger Zone</h2>
+      <p class="text-sm text-white/50 mb-4">Once you publish this job it will be visible to all candidates. You can close it later but cannot revert it to draft.</p>
+      <button
+        type="button"
+        @click="publishJob()"
+        :disabled="actionLoading"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+        style="background: var(--hf-success-subtle); color: var(--hf-success); border: 1px solid var(--hf-success);"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span x-show="!actionLoading">Publish Job</span>
+        <span x-show="actionLoading">Publishing…</span>
+      </button>
+    </div>
+
+    <!-- ─── Submit ─── -->
+    <div class="flex items-center justify-between gap-4 pb-8">
+      <p x-show="submitError" class="text-sm text-red-400" x-text="submitError"></p>
+      <div class="flex gap-3 ml-auto">
+        <a
+          href="/jobs/{{ job_slug }}/"
+          class="hf-btn-secondary inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          :disabled="submitting"
+          class="hf-btn-primary inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <span x-show="!submitting">Save Changes</span>
+          <span x-show="submitting" class="flex items-center gap-2">
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Saving…
+          </span>
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editJob(slug) {
+  return {
+    slug: slug,
+    loading: true,
+    loadError: '',
+    submitting: false,
+    actionLoading: false,
+    submitError: '',
+    skillInput: '',
+    form: {
+      title: '',
+      slug: '',
+      description: '',
+      requirements: '',
+      responsibilities: '',
+      skills: [],
+      job_type: '',
+      experience_level: '',
+      location: '',
+      is_remote: false,
+      salary_min: '',
+      salary_max: '',
+      currency: 'USD',
+      deadline: '',
+      status: 'draft',
+    },
+    errors: {},
+
+    async init() {
+      await this.loadJob();
+    },
+
+    async loadJob() {
+      this.loading = true;
+      this.loadError = '';
+      try {
+        const job = await HireFlowAPI.getJob(this.slug);
+        // Populate form from API response
+        this.form.title = job.title || '';
+        this.form.slug = job.slug || '';
+        this.form.description = job.description || '';
+        this.form.requirements = job.requirements || '';
+        this.form.responsibilities = job.responsibilities || '';
+        this.form.skills = Array.isArray(job.skills) ? [...job.skills] : [];
+        this.form.job_type = job.job_type || '';
+        this.form.experience_level = job.experience_level || '';
+        this.form.location = job.location || '';
+        this.form.is_remote = !!job.is_remote;
+        this.form.salary_min = job.salary_min ?? '';
+        this.form.salary_max = job.salary_max ?? '';
+        this.form.currency = job.currency || 'USD';
+        this.form.deadline = job.deadline ? job.deadline.split('T')[0] : '';
+        this.form.status = job.status || 'draft';
+      } catch (err) {
+        console.error('Failed to load job:', err);
+        this.loadError = err.message || 'Could not load the job. Please try again.';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    addSkill() {
+      const skill = this.skillInput.trim().replace(/,$/, '').trim();
+      if (skill && !this.form.skills.includes(skill)) {
+        this.form.skills.push(skill);
+      }
+      this.skillInput = '';
+    },
+
+    removeSkill(index) {
+      if (index >= 0 && index < this.form.skills.length) {
+        this.form.skills.splice(index, 1);
+      }
+    },
+
+    clearError(field) {
+      delete this.errors[field];
+    },
+
+    validate() {
+      this.errors = {};
+      if (!this.form.title.trim()) this.errors.title = 'Job title is required.';
+      if (!this.form.slug.trim()) this.errors.slug = 'URL slug is required.';
+      if (!this.form.location.trim()) this.errors.location = 'Location is required.';
+      if (!this.form.job_type) this.errors.job_type = 'Please select a job type.';
+      if (!this.form.experience_level) this.errors.experience_level = 'Please select an experience level.';
+      if (!this.form.description.trim()) this.errors.description = 'Job description is required.';
+      return Object.keys(this.errors).length === 0;
+    },
+
+    async submitForm() {
+      this.submitError = '';
+      if (!this.validate()) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      this.submitting = true;
+      try {
+        const payload = {
+          title: this.form.title.trim(),
+          slug: this.form.slug.trim(),
+          description: this.form.description.trim(),
+          requirements: this.form.requirements.trim() || null,
+          responsibilities: this.form.responsibilities.trim() || null,
+          skills: this.form.skills,
+          job_type: this.form.job_type,
+          experience_level: this.form.experience_level,
+          location: this.form.location.trim(),
+          is_remote: this.form.is_remote,
+          currency: this.form.currency,
+        };
+        if (this.form.salary_min !== '') payload.salary_min = this.form.salary_min;
+        if (this.form.salary_max !== '') payload.salary_max = this.form.salary_max;
+        if (this.form.deadline) payload.deadline = this.form.deadline;
+
+        const updated = await HireFlowAPI.updateJob(this.slug, payload);
+        const newSlug = updated.slug || this.form.slug;
+        this.$root.success('Job updated successfully!');
+        // If slug changed, navigate to new URL
+        if (newSlug !== this.slug) {
+          window.location.href = '/jobs/' + newSlug + '/edit/';
+        } else {
+          this.form.slug = newSlug;
+        }
+      } catch (err) {
+        console.error('Failed to update job:', err);
+        if (err.data && typeof err.data === 'object') {
+          Object.keys(err.data).forEach(key => {
+            const messages = err.data[key];
+            this.errors[key] = Array.isArray(messages) ? messages[0] : messages;
+          });
+        }
+        this.submitError = err.message || 'Failed to save changes. Please check the errors above.';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } finally {
+        this.submitting = false;
+      }
+    },
+
+    async publishJob() {
+      if (!confirm('Publish this job? It will be visible to all candidates.')) return;
+      this.actionLoading = true;
+      try {
+        const updated = await HireFlowAPI.publishJob(this.slug);
+        this.form.status = 'published';
+        if (updated && updated.status) this.form.status = updated.status;
+        this.$root.success('Job published successfully!');
+      } catch (err) {
+        this.$root.error(err.message || 'Failed to publish job.');
+      } finally {
+        this.actionLoading = false;
+      }
+    },
+
+    async closeJob() {
+      if (!confirm('Are you sure you want to close this job? It will no longer accept applications.')) return;
+      this.actionLoading = true;
+      try {
+        const updated = await HireFlowAPI.closeJob(this.slug);
+        this.form.status = 'closed';
+        if (updated && updated.status) this.form.status = updated.status;
+        this.$root.success('Job closed successfully.');
+      } catch (err) {
+        this.$root.error(err.message || 'Failed to close job.');
+      } finally {
+        this.actionLoading = false;
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

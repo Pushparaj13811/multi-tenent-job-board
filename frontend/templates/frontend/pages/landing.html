@@ -1,0 +1,758 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+
+{% block title %}HireFlow — Find Work That Feels Like Yours{% endblock %}
+{% block meta_description %}HireFlow connects talented candidates with verified companies. Search thousands of jobs, apply in one click, and get hired faster.{% endblock %}
+
+{% block extra_head %}
+<!-- Landing-specific fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<!-- Landing CSS -->
+<link rel="stylesheet" href="{% static 'frontend/css/landing.css' %}">
+
+{% endblock %}
+
+{% block body %}
+<!-- SVG filters (hidden) -->
+<svg style="display:none" aria-hidden="true">
+  <filter id="grain">
+    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/>
+  </filter>
+</svg>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 1 — NAVBAR (Landing variant)
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="lp-nav" id="lp-navbar" x-data="{ menuOpen: false }" @keydown.escape.window="menuOpen = false">
+  <div style="max-width:1280px;margin:0 auto;padding:0 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;height:72px;">
+      <!-- Logo -->
+      <a href="/" style="display:flex;align-items:center;gap:8px;text-decoration:none;" class="lp-focus">
+        <span style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;">
+          <span style="color:var(--lp-indigo-light);">H</span><span style="color:var(--lp-text-primary);">ireFlow</span>
+        </span>
+      </a>
+      <!-- Desktop links -->
+      <div style="display:flex;align-items:center;gap:32px;" class="lp-desktop-nav">
+        <a href="{% url 'frontend:job-board' %}" class="lp-nav-link lp-focus">Browse Jobs</a>
+        <a href="#for-companies" class="lp-nav-link lp-focus">For Companies</a>
+        <a href="#how-it-works" class="lp-nav-link lp-focus">How it Works</a>
+      </div>
+      <!-- Desktop auth -->
+      <div style="display:flex;align-items:center;gap:12px;" class="lp-desktop-nav">
+        <a href="{% url 'frontend:login' %}" class="lp-btn-ghost lp-focus">Sign in</a>
+        <a href="{% url 'frontend:register' %}" class="lp-btn-primary lp-focus">Get Started</a>
+      </div>
+      <!-- Mobile hamburger -->
+      <button
+        class="lp-mobile-toggle"
+        style="display:none;background:none;border:none;color:var(--lp-text-primary);padding:8px;cursor:pointer;"
+        @click="menuOpen = !menuOpen"
+        :aria-expanded="menuOpen"
+        aria-label="Toggle menu"
+      >
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile overlay -->
+  <div class="lp-mobile-overlay" :class="menuOpen ? 'open' : ''" x-show="menuOpen" x-transition.opacity>
+    <button class="lp-mobile-close" @click="menuOpen = false" aria-label="Close menu">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+    <a href="{% url 'frontend:job-board' %}" @click="menuOpen = false">Browse Jobs</a>
+    <a href="#for-companies" @click="menuOpen = false">For Companies</a>
+    <a href="#how-it-works" @click="menuOpen = false">How it Works</a>
+    <a href="{% url 'frontend:login' %}" @click="menuOpen = false">Sign in</a>
+    <a href="{% url 'frontend:register' %}" @click="menuOpen = false" style="color:var(--lp-indigo-light);">Get Started</a>
+  </div>
+</nav>
+
+<style>
+  @media (max-width: 768px) {
+    .lp-desktop-nav { display: none !important; }
+    .lp-mobile-toggle { display: flex !important; }
+  }
+</style>
+
+<main id="main-content" role="main">
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 2 — HERO
+     ═══════════════════════════════════════════════════════════ -->
+<section class="lp-hero">
+  <!-- Background layers -->
+  <div class="lp-hero-mesh" aria-hidden="true"></div>
+  <div class="lp-hero-grain" aria-hidden="true"></div>
+  <div class="lp-hero-grid" aria-hidden="true"></div>
+
+  <div style="position:relative;z-index:10;max-width:1280px;margin:0 auto;padding:0 24px;width:100%;">
+    <div style="display:grid;grid-template-columns:1fr;gap:48px;align-items:center;padding-top:120px;padding-bottom:80px;" class="lp-hero-grid-layout">
+
+      <!-- Left column — Copy -->
+      <div style="max-width:640px;">
+        <!-- Eyebrow -->
+        <div data-reveal>
+          <span class="lp-eyebrow">✦ Trusted by 500+ companies</span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="lp-headline" style="margin-top:24px;">
+          <span data-reveal="delay-1" style="display:block;">Find Work That</span>
+          <span data-reveal="delay-2" style="display:block;">Feels Like</span>
+          <span data-reveal="delay-3" style="display:block;padding-left:0;" class="lp-headline-yours">
+            <span class="lp-gradient-text">Yours.</span>
+          </span>
+        </h1>
+
+        <style>
+          @media (min-width: 769px) {
+            .lp-headline-yours { padding-left: 2rem !important; }
+          }
+        </style>
+
+        <!-- Subheadline -->
+        <p class="lp-subheadline" data-reveal="delay-4" style="margin-top:24px;">
+          Connect with verified companies that are building something worth your time. No noise. Just opportunity.
+        </p>
+
+        <!-- Search bar -->
+        <form class="lp-search" data-reveal="delay-5" style="margin-top:32px;" id="hero-search" action="{% url 'frontend:job-board' %}" method="get">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink:0;color:var(--lp-text-muted);">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <label for="hero-q" class="sr-only">Job title, skill, or company</label>
+          <input id="hero-q" type="text" name="q" placeholder="Job title, skill, or company..." autocomplete="off" class="lp-focus">
+          <span class="lp-search-divider" aria-hidden="true"></span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink:0;color:var(--lp-text-muted);" class="lp-search-location-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <label for="hero-location" class="sr-only">Location</label>
+          <input id="hero-location" type="text" name="location" placeholder="Location..." autocomplete="off" class="lp-focus">
+          <button type="submit" class="lp-search-btn lp-focus">Search</button>
+        </form>
+
+        <style>
+          @media (max-width: 768px) {
+            .lp-search-location-icon { display: none; }
+          }
+        </style>
+
+        <!-- Quick categories -->
+        <div data-reveal="delay-6" style="margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);">Popular:</span>
+          <a href="{% url 'frontend:job-board' %}?q=engineering" class="lp-pill lp-focus">Engineering</a>
+          <a href="{% url 'frontend:job-board' %}?q=design" class="lp-pill lp-focus">Design</a>
+          <a href="{% url 'frontend:job-board' %}?q=marketing" class="lp-pill lp-focus">Marketing</a>
+          <a href="{% url 'frontend:job-board' %}?q=finance" class="lp-pill lp-focus">Finance</a>
+          <a href="{% url 'frontend:job-board' %}?q=operations" class="lp-pill lp-focus">Operations</a>
+        </div>
+
+        <!-- Social proof -->
+        <div data-reveal="delay-7" style="margin-top:32px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="lp-avatar-stack">
+              <span style="background:linear-gradient(135deg,#6366F1,#818CF8);">S</span>
+              <span style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);">M</span>
+              <span style="background:linear-gradient(135deg,#EC4899,#F472B6);">A</span>
+              <span style="background:linear-gradient(135deg,#10B981,#34D399);">K</span>
+              <span style="background:linear-gradient(135deg,#F59E0B,#FBBF24);">J</span>
+            </div>
+            <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);"><strong style="color:var(--lp-text-primary);">4,200+</strong> hired this month</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-left:4px;">4.9/5 from 800 reviews</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column — Card stack (desktop only) -->
+      <div class="lp-hero-visual" style="display:none;justify-content:center;">
+        <div class="lp-card-stack">
+          <!-- Card back -->
+          <div class="lp-job-card lp-job-card--back lp-card-enter lp-card-enter--1" aria-hidden="true">
+            <div style="height:16px;width:60%;background:var(--lp-shimmer-bg);border-radius:8px;"></div>
+            <div style="height:12px;width:80%;background:var(--lp-shimmer-bg-subtle);border-radius:8px;margin-top:12px;"></div>
+          </div>
+          <!-- Card middle -->
+          <div class="lp-job-card lp-job-card--mid lp-card-enter lp-card-enter--2" aria-hidden="true">
+            <div style="height:16px;width:50%;background:var(--lp-shimmer-bg);border-radius:8px;"></div>
+            <div style="height:12px;width:70%;background:var(--lp-shimmer-bg-subtle);border-radius:8px;margin-top:12px;"></div>
+            <div style="height:12px;width:40%;background:var(--lp-shimmer-bg-subtle);border-radius:8px;margin-top:8px;"></div>
+          </div>
+          <!-- Card front -->
+          <div class="lp-job-card lp-job-card--front lp-card-enter lp-card-enter--3">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--lp-indigo),var(--lp-indigo-dark));display:flex;align-items:center;justify-content:center;font-family:var(--lp-font-display);font-size:18px;font-weight:700;color:var(--lp-text-primary);flex-shrink:0;">S</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--lp-font-display);font-size:14px;font-weight:600;color:var(--lp-text-primary);">Stripe</span>
+                  <span style="font-size:11px;padding:2px 8px;background:var(--lp-indigo-subtle);color:var(--lp-indigo-light);border-radius:100px;font-family:var(--lp-font-body);">✓ Verified</span>
+                </div>
+              </div>
+              <span style="font-family:var(--lp-font-body);font-size:12px;color:var(--lp-text-muted);white-space:nowrap;">2h ago</span>
+            </div>
+            <!-- Title -->
+            <h3 style="font-family:var(--lp-font-display);font-size:20px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Senior Product Designer</h3>
+            <!-- Tags -->
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <span class="lp-card-tag lp-card-tag--remote">Remote</span>
+              <span class="lp-card-tag lp-card-tag--type">Full-time</span>
+              <span class="lp-card-tag lp-card-tag--salary">$120k – $160k</span>
+            </div>
+            <!-- Description -->
+            <p style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);line-height:1.6;margin-top:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+              We're building the future of fintech. Join a team of 40 people who care deeply about craft.
+            </p>
+            <!-- Footer -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+              <span style="font-family:var(--lp-font-body);font-size:12px;color:var(--lp-text-muted);">48 applicants</span>
+              <a href="{% url 'frontend:job-board' %}" class="lp-btn-ghost lp-focus" style="font-size:12px;padding:6px 14px;">Apply Now →</a>
+            </div>
+          </div>
+          <!-- Notification bubble -->
+          <div class="lp-notif-bubble lp-card-enter lp-card-enter--notif" aria-hidden="true">
+            <div><span class="lp-pulse-dot"></span>New match found</div>
+            <div style="margin-top:2px;color:var(--lp-text-muted);font-size:11px;">UX Lead at Linear</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    @media (min-width: 1024px) {
+      .lp-hero-grid-layout { grid-template-columns: 1fr 400px !important; }
+      .lp-hero-visual { display: flex !important; }
+    }
+  </style>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 3 — LIVE STATS BAR
+     ═══════════════════════════════════════════════════════════ -->
+<section class="lp-stats" style="background-color:var(--lp-base);">
+  <div style="max-width:1280px;margin:0 auto;padding:24px;" data-reveal>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px;text-align:center;" class="lp-stats-grid">
+      <div>
+        <div class="lp-stat-number" data-count="{{ total_jobs|default:'2840' }}">0</div>
+        <div class="lp-stat-label">Live job openings</div>
+      </div>
+      <div>
+        <div class="lp-stat-number" data-count="{{ total_companies|default:'500' }}">0</div>
+        <div class="lp-stat-label">Verified companies</div>
+      </div>
+      <div>
+        <div class="lp-stat-number" data-count="4200">0</div>
+        <div class="lp-stat-label">Hired this month</div>
+      </div>
+      <div>
+        <div class="lp-stat-number" data-count-text="48h">48h</div>
+        <div class="lp-stat-label">Average time to first interview</div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @media (min-width: 768px) {
+      .lp-stats-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+      }
+    }
+  </style>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 4 — FEATURED JOB CATEGORIES
+     ═══════════════════════════════════════════════════════════ -->
+<section style="background:var(--lp-base);padding:100px 0;">
+  <div style="max-width:1280px;margin:0 auto;padding:0 24px;">
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:64px;">
+      <span class="lp-section-eyebrow" data-reveal>Explore Roles</span>
+      <h2 class="lp-section-title" style="margin-top:20px;" data-reveal="delay-1">
+        Every discipline,<br><span class="lp-gradient-text">one platform.</span>
+      </h2>
+      <p class="lp-section-subtitle" style="margin-top:16px;" data-reveal="delay-2">
+        From deep tech to creative direction — find the role that fits how you work.
+      </p>
+    </div>
+    <!-- Grid -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;" class="lp-cat-grid">
+
+      <a href="{% url 'frontend:job-board' %}?q=engineering" class="lp-category-card" data-reveal style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#6366F1,#3B82F6);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Engineering</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">840 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=design" class="lp-category-card" data-reveal="delay-1" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Design</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">320 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=marketing" class="lp-category-card" data-reveal="delay-2" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#F97316,#F59E0B);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Marketing</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">215 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=sales" class="lp-category-card" data-reveal="delay-3" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#10B981,#14B8A6);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Sales</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">480 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=finance" class="lp-category-card" data-reveal="delay-4" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#D4A853,#F59E0B);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Finance</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">190 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=operations" class="lp-category-card" data-reveal="delay-5" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#64748B,#3B82F6);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Operations</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">270 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=data+science" class="lp-category-card" data-reveal="delay-6" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#7C3AED,#6366F1);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Data Science</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">310 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a href="{% url 'frontend:job-board' %}?q=product" class="lp-category-card" data-reveal="delay-7" style="text-decoration:none;">
+        <div class="lp-category-icon" style="background:linear-gradient(135deg,#14B8A6,#06B6D4);">
+          <svg width="24" height="24" fill="none" stroke="var(--lp-text-primary)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <div style="font-family:var(--lp-font-display);font-size:18px;font-weight:600;color:var(--lp-text-primary);">Product</div>
+        <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);margin-top:4px;">160 open roles</div>
+        <span class="lp-category-arrow" aria-hidden="true">→</span>
+      </a>
+
+    </div>
+    <style>
+      @media (min-width: 768px) { .lp-cat-grid { grid-template-columns: repeat(4, 1fr) !important; } }
+    </style>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 5 — HOW IT WORKS (TABBED)
+     ═══════════════════════════════════════════════════════════ -->
+<section id="how-it-works" style="background:linear-gradient(180deg,var(--lp-base),var(--lp-base-light));padding:120px 0;" x-data="{ tab: 'candidate' }">
+  <div style="max-width:1280px;margin:0 auto;padding:0 24px;">
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:48px;">
+      <span class="lp-section-eyebrow" data-reveal>The Process</span>
+      <h2 class="lp-section-title" style="margin-top:20px;" data-reveal="delay-1">
+        Simple steps.<br><span class="lp-gradient-text">Real results.</span>
+      </h2>
+      <p class="lp-section-subtitle" style="margin-top:16px;" data-reveal="delay-2">
+        Whether you're hiring or being hired, we've removed every unnecessary step.
+      </p>
+    </div>
+    <!-- Tab switcher -->
+    <div style="text-align:center;margin-bottom:64px;" data-reveal="delay-3">
+      <div class="lp-tab-container" role="tablist">
+        <button role="tab" :aria-selected="tab === 'candidate'" class="lp-tab-btn lp-focus" :class="tab === 'candidate' ? 'active' : ''" @click="tab = 'candidate'">For Candidates</button>
+        <button role="tab" :aria-selected="tab === 'company'" class="lp-tab-btn lp-focus" :class="tab === 'company' ? 'active' : ''" @click="tab = 'company'">For Companies</button>
+      </div>
+    </div>
+
+    <!-- Candidate steps -->
+    <div x-show="tab === 'candidate'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-x-4" x-transition:enter-end="opacity-100 transform translate-x-0" role="tabpanel">
+      <div style="display:grid;grid-template-columns:1fr;gap:48px;max-width:900px;margin:0 auto;" class="lp-steps-grid">
+        <div style="text-align:center;">
+          <div class="lp-step-number" style="margin:0 auto;">01</div>
+          <h3 style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Create your profile</h3>
+          <p style="font-family:var(--lp-font-body);font-size:15px;color:var(--lp-text-secondary);margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto;">Set up in under 2 minutes. Your resume, your skills, your story.</p>
+          <div class="lp-mini-card" style="max-width:220px;margin:16px auto 0;">
+            <svg width="60" height="60" viewBox="0 0 60 60" style="margin:0 auto;display:block;" aria-hidden="true">
+              <circle cx="30" cy="30" r="26" stroke="var(--lp-indigo-subtle-border)" stroke-width="3" fill="none"/>
+              <circle cx="30" cy="30" r="26" stroke="var(--lp-indigo-light)" stroke-width="3" fill="none" stroke-dasharray="163.36" stroke-dashoffset="32.67" stroke-linecap="round" transform="rotate(-90 30 30)"/>
+              <text x="30" y="34" text-anchor="middle" fill="var(--lp-text-primary)" font-family="var(--lp-font-body)" font-size="12" font-weight="600">80%</text>
+            </svg>
+            <div style="margin-top:8px;font-family:var(--lp-font-body);font-size:11px;color:var(--lp-text-muted);text-align:left;">
+              <div>✓ Basic info</div>
+              <div>✓ Skills added</div>
+              <div style="color:var(--lp-text-dim);">○ Resume uploaded</div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lp-step-number" style="margin:0 auto;">02</div>
+          <h3 style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Discover your match</h3>
+          <p style="font-family:var(--lp-font-body);font-size:15px;color:var(--lp-text-secondary);margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto;">Search live roles. Filter by everything that matters to you.</p>
+          <div class="lp-mini-card" style="max-width:220px;margin:16px auto 0;">
+            <div style="height:28px;background:var(--lp-shimmer-bg-subtle);border-radius:8px;display:flex;align-items:center;padding:0 8px;">
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--lp-text-dim);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <span style="font-size:10px;color:var(--lp-text-dim);margin-left:6px;">product designer...</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <div style="flex:1;height:40px;background:var(--lp-card-bg);border:1px solid var(--lp-shimmer-bg-subtle);border-radius:8px;padding:6px;">
+                <div style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#4F46E5);margin-bottom:4px;"></div>
+                <div style="height:4px;width:70%;background:var(--lp-shimmer-bg);border-radius:4px;"></div>
+              </div>
+              <div style="flex:1;height:40px;background:var(--lp-card-bg);border:1px solid var(--lp-shimmer-bg-subtle);border-radius:8px;padding:6px;">
+                <div style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#10B981,#14B8A6);margin-bottom:4px;"></div>
+                <div style="height:4px;width:50%;background:var(--lp-shimmer-bg);border-radius:4px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lp-step-number" style="margin:0 auto;">03</div>
+          <h3 style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Apply in one click</h3>
+          <p style="font-family:var(--lp-font-body);font-size:15px;color:var(--lp-text-secondary);margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto;">Your profile is your application. No cover letter hell.</p>
+          <div class="lp-mini-card" style="max-width:220px;margin:16px auto 0;text-align:center;">
+            <svg width="40" height="40" viewBox="0 0 40 40" style="margin:0 auto;" aria-hidden="true">
+              <circle cx="20" cy="20" r="18" fill="var(--lp-emerald-subtle)" stroke="var(--lp-emerald-border)" stroke-width="1.5"/>
+              <path d="M14 20l4 4 8-8" fill="none" stroke="var(--lp-emerald)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div style="font-family:var(--lp-font-body);font-size:11px;color:var(--lp-emerald-light);margin-top:8px;">Application sent to Stripe ✓</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company steps -->
+    <div x-show="tab === 'company'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-x-4" x-transition:enter-end="opacity-100 transform translate-x-0" role="tabpanel">
+      <div style="display:grid;grid-template-columns:1fr;gap:48px;max-width:900px;margin:0 auto;" class="lp-steps-grid">
+        <div style="text-align:center;">
+          <div class="lp-step-number" style="margin:0 auto;">01</div>
+          <h3 style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Verify your company</h3>
+          <p style="font-family:var(--lp-font-body);font-size:15px;color:var(--lp-text-secondary);margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto;">Domain verification in minutes. Build instant trust with candidates.</p>
+          <div class="lp-mini-card" style="max-width:220px;margin:16px auto 0;text-align:center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--lp-emerald)" style="margin:0 auto;" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <div style="margin-top:8px;">
+              <span style="font-size:11px;padding:2px 10px;background:var(--lp-emerald-subtle);color:var(--lp-emerald-light);border-radius:100px;font-family:var(--lp-font-body);">Domain Verified</span>
+            </div>
+            <div style="margin-top:6px;">
+              <span style="font-size:11px;padding:2px 10px;background:var(--lp-gold-subtle);color:var(--lp-gold);border-radius:100px;font-family:var(--lp-font-body);">Business Verified</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lp-step-number" style="margin:0 auto;">02</div>
+          <h3 style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Post your role</h3>
+          <p style="font-family:var(--lp-font-body);font-size:15px;color:var(--lp-text-secondary);margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto;">Reach thousands of qualified candidates. Be live in under 5 minutes.</p>
+          <div class="lp-mini-card" style="max-width:220px;margin:16px auto 0;">
+            <div style="height:6px;width:100%;background:var(--lp-shimmer-bg-subtle);border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:75%;background:var(--lp-indigo);border-radius:4px;"></div>
+            </div>
+            <div style="font-size:10px;color:var(--lp-text-muted);font-family:var(--lp-font-body);margin-top:6px;">42 candidates will see this</div>
+            <div style="margin-top:8px;text-align:center;">
+              <span style="font-size:11px;padding:4px 12px;background:var(--lp-indigo);color:var(--lp-text-primary);border-radius:8px;font-family:var(--lp-font-body);font-weight:500;">Publish Now</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lp-step-number" style="margin:0 auto;">03</div>
+          <h3 style="font-family:var(--lp-font-display);font-size:22px;font-weight:700;color:var(--lp-text-primary);margin-top:16px;">Manage your pipeline</h3>
+          <p style="font-family:var(--lp-font-body);font-size:15px;color:var(--lp-text-secondary);margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto;">Kanban pipeline built in. Move candidates from applied to offered seamlessly.</p>
+          <div class="lp-mini-card" style="max-width:220px;margin:16px auto 0;">
+            <div style="display:flex;gap:4px;">
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:9px;color:var(--lp-text-dim);font-family:var(--lp-font-body);margin-bottom:4px;">Applied</div>
+                <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#60A5FA);margin:0 auto;font-size:8px;color:var(--lp-text-primary);display:flex;align-items:center;justify-content:center;">3</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:9px;color:var(--lp-text-dim);font-family:var(--lp-font-body);margin-bottom:4px;">Review</div>
+                <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#FBBF24);margin:0 auto;font-size:8px;color:var(--lp-text-primary);display:flex;align-items:center;justify-content:center;">2</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:9px;color:var(--lp-text-dim);font-family:var(--lp-font-body);margin-bottom:4px;">Shortlist</div>
+                <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#10B981,#34D399);margin:0 auto;font-size:8px;color:var(--lp-text-primary);display:flex;align-items:center;justify-content:center;">1</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+      @media (min-width: 768px) { .lp-steps-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+    </style>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 6 — COMPANIES MARQUEE
+     ═══════════════════════════════════════════════════════════ -->
+<section style="background:var(--lp-footer-bg);background-color:var(--lp-base);border-top:1px solid var(--lp-section-border);border-bottom:1px solid var(--lp-section-border);padding:60px 0;" aria-hidden="true">
+  <div style="text-align:center;margin-bottom:32px;">
+    <span style="font-family:var(--lp-font-body);font-size:12px;color:var(--lp-text-dim);text-transform:uppercase;letter-spacing:0.12em;">Companies actively hiring on HireFlow</span>
+  </div>
+  <!-- Row 1: left -->
+  <div class="lp-marquee-container" style="margin-bottom:12px;">
+    <div class="lp-marquee-row lp-marquee-left">
+      <span class="lp-company-pill">Acme Corp</span><span class="lp-company-pill">Stripe</span><span class="lp-company-pill">Vercel</span><span class="lp-company-pill">Linear</span><span class="lp-company-pill">Figma</span><span class="lp-company-pill">Notion</span><span class="lp-company-pill">Retool</span><span class="lp-company-pill">Loom</span><span class="lp-company-pill">Mercury</span><span class="lp-company-pill">Brex</span><span class="lp-company-pill">Rippling</span><span class="lp-company-pill">Scale AI</span><span class="lp-company-pill">Anthropic</span><span class="lp-company-pill">Runway</span><span class="lp-company-pill">Perplexity</span><span class="lp-company-pill">Clerk</span>
+      <span class="lp-company-pill">Acme Corp</span><span class="lp-company-pill">Stripe</span><span class="lp-company-pill">Vercel</span><span class="lp-company-pill">Linear</span><span class="lp-company-pill">Figma</span><span class="lp-company-pill">Notion</span><span class="lp-company-pill">Retool</span><span class="lp-company-pill">Loom</span><span class="lp-company-pill">Mercury</span><span class="lp-company-pill">Brex</span><span class="lp-company-pill">Rippling</span><span class="lp-company-pill">Scale AI</span><span class="lp-company-pill">Anthropic</span><span class="lp-company-pill">Runway</span><span class="lp-company-pill">Perplexity</span><span class="lp-company-pill">Clerk</span>
+    </div>
+  </div>
+  <!-- Row 2: right -->
+  <div class="lp-marquee-container">
+    <div class="lp-marquee-row lp-marquee-right">
+      <span class="lp-company-pill">GitHub</span><span class="lp-company-pill">Cloudflare</span><span class="lp-company-pill">PlanetScale</span><span class="lp-company-pill">Railway</span><span class="lp-company-pill">Neon</span><span class="lp-company-pill">Resend</span><span class="lp-company-pill">PostHog</span><span class="lp-company-pill">Cal.com</span><span class="lp-company-pill">Supabase</span><span class="lp-company-pill">Deno</span><span class="lp-company-pill">Turso</span><span class="lp-company-pill">Trigger.dev</span><span class="lp-company-pill">Inngest</span><span class="lp-company-pill">tRPC</span>
+      <span class="lp-company-pill">GitHub</span><span class="lp-company-pill">Cloudflare</span><span class="lp-company-pill">PlanetScale</span><span class="lp-company-pill">Railway</span><span class="lp-company-pill">Neon</span><span class="lp-company-pill">Resend</span><span class="lp-company-pill">PostHog</span><span class="lp-company-pill">Cal.com</span><span class="lp-company-pill">Supabase</span><span class="lp-company-pill">Deno</span><span class="lp-company-pill">Turso</span><span class="lp-company-pill">Trigger.dev</span><span class="lp-company-pill">Inngest</span><span class="lp-company-pill">tRPC</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 7 — TESTIMONIALS
+     ═══════════════════════════════════════════════════════════ -->
+<section style="background:var(--lp-base);padding:120px 0;">
+  <div style="max-width:1280px;margin:0 auto;padding:0 24px;">
+    <div style="text-align:center;margin-bottom:64px;">
+      <span class="lp-section-eyebrow" data-reveal>Stories</span>
+      <h2 class="lp-section-title" style="margin-top:20px;" data-reveal="delay-1">
+        Real people.<br><span class="lp-gradient-text">Real hires.</span>
+      </h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:24px;" class="lp-testimonial-grid">
+
+      <!-- T1 -->
+      <div class="lp-testimonial" data-reveal>
+        <span class="lp-testimonial-quote" aria-hidden="true">"</span>
+        <div style="display:flex;gap:2px;margin-bottom:16px;">
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p style="font-family:var(--lp-font-body);font-size:16px;color:var(--lp-text-secondary);line-height:1.7;font-style:italic;margin-bottom:24px;">
+          "I applied to 3 jobs on a Tuesday. Had 2 interviews by Thursday. Hired in under 2 weeks. This actually works."
+        </p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#EC4899,#F472B6);display:flex;align-items:center;justify-content:center;font-family:var(--lp-font-body);font-size:16px;font-weight:600;color:var(--lp-text-primary);flex-shrink:0;">S</div>
+          <div>
+            <div style="font-family:var(--lp-font-display);font-size:14px;font-weight:600;color:var(--lp-text-primary);">Sarah Chen</div>
+            <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);">Product Designer → now at Linear</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- T2 (featured) -->
+      <div class="lp-testimonial lp-testimonial--featured" data-reveal="delay-1" style="position:relative;">
+        <span style="position:absolute;top:16px;left:24px;font-size:11px;padding:3px 10px;background:var(--lp-gold-subtle);color:var(--lp-gold);border-radius:100px;font-family:var(--lp-font-body);font-weight:500;">⭐ Top Story</span>
+        <span class="lp-testimonial-quote" aria-hidden="true">"</span>
+        <div style="display:flex;gap:2px;margin-bottom:16px;margin-top:28px;">
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p style="font-family:var(--lp-font-body);font-size:16px;color:var(--lp-text-secondary);line-height:1.7;font-style:italic;margin-bottom:24px;">
+          "We filled a senior engineering role in 11 days. The kanban pipeline made it feel like we finally had a process, not just chaos."
+        </p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#D4A853,#B8882A);display:flex;align-items:center;justify-content:center;font-family:var(--lp-font-body);font-size:16px;font-weight:600;color:var(--lp-text-primary);flex-shrink:0;">J</div>
+          <div style="flex:1;">
+            <div style="font-family:var(--lp-font-display);font-size:14px;font-weight:600;color:var(--lp-text-primary);">James Okafor</div>
+            <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);">Head of Engineering, Series A startup</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- T3 -->
+      <div class="lp-testimonial" data-reveal="delay-2">
+        <span class="lp-testimonial-quote" aria-hidden="true">"</span>
+        <div style="display:flex;gap:2px;margin-bottom:16px;">
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="lp-star" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p style="font-family:var(--lp-font-body);font-size:16px;color:var(--lp-text-secondary);line-height:1.7;font-style:italic;margin-bottom:24px;">
+          "Finally a platform that doesn't make you feel like a resume in a pile. The company pages actually tell you if a company is worth your time."
+        </p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#818CF8);display:flex;align-items:center;justify-content:center;font-family:var(--lp-font-body);font-size:16px;font-weight:600;color:var(--lp-text-primary);flex-shrink:0;">P</div>
+          <div>
+            <div style="font-family:var(--lp-font-display);font-size:14px;font-weight:600;color:var(--lp-text-primary);">Priya Mehta</div>
+            <div style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-muted);">Sr. Backend Engineer → now at Stripe</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <style>
+      @media (min-width: 768px) { .lp-testimonial-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+    </style>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 8 — SPLIT CTA
+     ═══════════════════════════════════════════════════════════ -->
+<section id="for-companies">
+  <div class="lp-split">
+    <!-- Candidates -->
+    <div class="lp-split-panel lp-split-panel--candidate" data-reveal>
+      <span class="lp-section-eyebrow" style="margin-bottom:20px;">For Candidates</span>
+      <h2 style="font-family:var(--lp-font-display);font-size:40px;font-weight:700;color:var(--lp-text-primary);line-height:1.15;">
+        Your next chapter<br>starts here.
+      </h2>
+      <p style="font-family:var(--lp-font-body);font-size:16px;color:var(--lp-text-secondary);margin-top:12px;margin-bottom:32px;max-width:400px;">
+        Browse thousands of verified opportunities. No spam. No ghost jobs. Just real companies hiring now.
+      </p>
+      <a href="{% url 'frontend:job-board' %}" class="lp-btn-indigo-lg lp-focus">Browse Jobs →</a>
+      <p style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-hint);margin-top:12px;">Free forever · No account needed to browse</p>
+      <span class="lp-split-deco" aria-hidden="true">→</span>
+    </div>
+    <!-- Companies -->
+    <div class="lp-split-panel lp-split-panel--company" data-reveal="delay-1">
+      <span class="lp-section-eyebrow" style="background:var(--lp-gold-subtle);border-color:var(--lp-gold-border);color:var(--lp-gold);margin-bottom:20px;">For Companies</span>
+      <h2 style="font-family:var(--lp-font-display);font-size:40px;font-weight:700;color:var(--lp-text-primary);line-height:1.15;">
+        Build your team<br>with confidence.
+      </h2>
+      <p style="font-family:var(--lp-font-body);font-size:16px;color:var(--lp-text-secondary);margin-top:12px;margin-bottom:32px;max-width:400px;">
+        Verified candidates. Built-in pipeline management. Hire faster without the agency fees.
+      </p>
+      <a href="{% url 'frontend:register' %}" class="lp-btn-gold lp-focus">Post a Job →</a>
+      <p style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-hint);margin-top:12px;">First job post free · No credit card required</p>
+      <span class="lp-split-deco" aria-hidden="true" style="font-size:200px;">▪</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 9 — FINAL CTA BANNER
+     ═══════════════════════════════════════════════════════════ -->
+<section class="lp-final-cta" style="background:var(--lp-base);padding:120px 0;">
+  <span class="lp-final-bg-text" aria-hidden="true">HIRED</span>
+  <div style="max-width:700px;margin:0 auto;padding:0 24px;text-align:center;position:relative;z-index:1;">
+    <span class="lp-section-eyebrow" data-reveal>Join 4,200 people hired this month</span>
+    <h2 style="font-family:var(--lp-font-display);font-size:64px;font-weight:700;color:var(--lp-text-primary);line-height:1.05;margin-top:24px;" data-reveal="delay-1" class="lp-final-headline">
+      Ready when you are.
+    </h2>
+    <p style="font-family:var(--lp-font-body);font-size:18px;color:var(--lp-text-muted);margin-top:16px;" data-reveal="delay-2">
+      Create your free account in 60 seconds.
+    </p>
+    <div style="display:flex;justify-content:center;gap:16px;margin-top:32px;flex-wrap:wrap;" data-reveal="delay-3">
+      <a href="{% url 'frontend:register' %}" class="lp-btn-indigo-lg lp-focus">Get Started Free</a>
+      <a href="{% url 'frontend:job-board' %}" class="lp-btn-ghost lp-focus" style="height:52px;display:inline-flex;align-items:center;font-family:var(--lp-font-display);font-size:16px;font-weight:600;padding:0 32px;">Browse Jobs</a>
+    </div>
+    <div style="display:flex;justify-content:center;gap:24px;margin-top:24px;flex-wrap:wrap;" data-reveal="delay-4">
+      <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-hint);display:flex;align-items:center;gap:4px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Free to join
+      </span>
+      <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-hint);display:flex;align-items:center;gap:4px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        No spam, ever
+      </span>
+      <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-hint);display:flex;align-items:center;gap:4px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Cancel anytime
+      </span>
+    </div>
+  </div>
+  <style>
+    @media (max-width: 768px) { .lp-final-headline { font-size: 40px !important; } }
+  </style>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 10 — FOOTER
+     ═══════════════════════════════════════════════════════════ -->
+<footer class="lp-footer" style="padding:64px 0 32px;">
+  <div style="max-width:1280px;margin:0 auto;padding:0 24px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;" class="lp-footer-grid">
+      <!-- Brand -->
+      <div>
+        <span style="font-family:var(--lp-font-display);font-size:20px;font-weight:700;">
+          <span style="color:var(--lp-indigo-light);">H</span><span style="color:var(--lp-text-primary);">ireFlow</span>
+        </span>
+        <p style="font-family:var(--lp-font-body);font-size:14px;color:var(--lp-text-muted);margin-top:8px;">Find work that feels like yours.</p>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <a href="#" class="lp-social-icon lp-focus" aria-label="Twitter">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="#" class="lp-social-icon lp-focus" aria-label="LinkedIn">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          </a>
+          <a href="#" class="lp-social-icon lp-focus" aria-label="GitHub">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+      <!-- For Candidates -->
+      <div>
+        <h4 class="lp-footer-heading">For Candidates</h4>
+        <a href="{% url 'frontend:job-board' %}" class="lp-footer-link">Browse Jobs</a>
+        <a href="{% url 'frontend:login' %}" class="lp-footer-link">My Applications</a>
+        <a href="{% url 'frontend:register' %}" class="lp-footer-link">Create Profile</a>
+      </div>
+      <!-- For Companies -->
+      <div>
+        <h4 class="lp-footer-heading">For Companies</h4>
+        <a href="{% url 'frontend:register' %}" class="lp-footer-link">Post a Job</a>
+        <a href="{% url 'frontend:login' %}" class="lp-footer-link">Recruiter Dashboard</a>
+        <a href="{% url 'frontend:register' %}" class="lp-footer-link">Company Profile</a>
+      </div>
+      <!-- Company -->
+      <div>
+        <h4 class="lp-footer-heading">Resources</h4>
+        <a href="/api/docs/" class="lp-footer-link">API Docs</a>
+        <a href="#" class="lp-footer-link">Privacy Policy</a>
+        <a href="#" class="lp-footer-link">Terms of Service</a>
+      </div>
+    </div>
+    <!-- Bottom bar -->
+    <div style="margin-top:48px;padding-top:32px;border-top:1px solid var(--lp-shimmer-bg-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-faint);">&copy; {{ current_year }} HireFlow. All rights reserved.</span>
+      <span style="font-family:var(--lp-font-body);font-size:13px;color:var(--lp-text-faint);">Built with Django · Served worldwide</span>
+    </div>
+    <style>
+      @media (min-width: 768px) { .lp-footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr !important; } }
+    </style>
+  </div>
+</footer>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'frontend/js/landing.js' %}"></script>
+{% endblock %}

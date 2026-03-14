@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><title>Redirecting…</title></head>
+<body>
+<p>Redirecting…</p>
+<script>
+  var access = '{{ access_token }}';
+  var refresh = '{{ refresh_token }}';
+  if (access) {
+    localStorage.setItem('hf_access', access);
+    localStorage.setItem('hf_refresh', refresh);
+  } else {
+    localStorage.removeItem('hf_access');
+    localStorage.removeItem('hf_refresh');
+  }
+  window.location.replace('{{ next_url|escapejs }}');
+</script>
+</body>
+</html>

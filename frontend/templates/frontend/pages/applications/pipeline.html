@@ -1,0 +1,334 @@
+{% extends "frontend/layouts/dashboard.html" %}
+
+{% block title %}Application Pipeline — HireFlow{% endblock %}
+
+{% block page_title %}Application Pipeline{% endblock %}
+{% block page_subtitle %}Move candidates through your hiring stages{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'frontend:post-job' %}"
+   class="hf-btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Post a Job
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div x-data="pipelineBoard()" x-init="init()">
+
+  <!-- ── Toolbar ── -->
+  <div class="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+    <!-- Search / filter by job -->
+    <div class="relative flex-1 max-w-sm">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input type="text"
+             x-model.debounce.300ms="searchQuery"
+             @input="applyFilter()"
+             placeholder="Filter by name or job..."
+             class="hf-input w-full pl-10 pr-4 py-2 text-sm rounded-lg">
+    </div>
+
+    <!-- Total badge -->
+    <div class="text-sm text-white/50">
+      <span class="font-semibold text-white" x-text="totalCount"></span> total applicants
+    </div>
+
+    <!-- Reload -->
+    <button @click="reload()"
+            :disabled="loading"
+            class="hf-btn-secondary inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+      <svg class="w-4 h-4" :class="loading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- ── Loading skeleton ── -->
+  <div x-show="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 animate-pulse">
+    <template x-for="i in 5" :key="i">
+      <div class="glass-card rounded-xl p-4">
+        <div class="h-4 bg-white/10 rounded w-2/3 mb-3"></div>
+        <div class="h-6 bg-white/5 rounded w-1/4 mb-4"></div>
+        <div class="space-y-3">
+          <div class="bg-white/5 rounded-lg h-24"></div>
+          <div class="bg-white/5 rounded-lg h-24"></div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- ── Kanban board ── -->
+  <div x-show="!loading" x-cloak class="overflow-x-auto pb-4">
+    <div class="inline-flex gap-4 min-w-max">
+      <template x-for="column in columns" :key="column.status">
+        <div class="w-64 flex flex-col">
+          <!-- Column header -->
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center gap-2">
+              <div class="w-2.5 h-2.5 rounded-full" :class="column.dotColor"></div>
+              <h3 class="text-sm font-semibold text-white/70 font-display" x-text="column.label"></h3>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                  :class="column.badgeColor"
+                  x-text="filteredCards(column.status).length">
+            </span>
+          </div>
+
+          <!-- Cards container -->
+          <div class="rounded-xl p-2 flex flex-col gap-2 min-h-32"
+               style="background: var(--hf-card-bg);"
+               :class="filteredCards(column.status).length === 0 ? 'items-center justify-center' : ''">
+
+            <!-- Empty column state -->
+            <template x-if="filteredCards(column.status).length === 0">
+              <p class="text-xs text-white/40 py-4">No applicants</p>
+            </template>
+
+            <!-- Application cards -->
+            <template x-for="card in filteredCards(column.status)" :key="card.id">
+              <div class="glass-card rounded-lg p-3 hover:border-white/10 transition-all">
+                <!-- Card header -->
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-white truncate"
+                       x-text="card.applicant_name || card.candidate?.full_name || 'Applicant'"></p>
+                    <p class="text-xs text-white/50 truncate"
+                       x-text="card.job_title || card.job?.title || '—'"></p>
+                  </div>
+                </div>
+
+                <!-- Date -->
+                <p class="text-xs text-white/40 mb-3" x-text="formatDate(card.created_at)"></p>
+
+                <!-- Action buttons: advance to next status -->
+                <div class="space-y-1.5">
+                  <template x-if="nextStatus(column.status)">
+                    <button @click="advance(card, nextStatus(column.status))"
+                            :disabled="card._updating"
+                            class="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-primary-400 rounded-md transition-colors disabled:opacity-50"
+                            style="background: var(--hf-indigo-light); border: 1px solid var(--hf-indigo);">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                      </svg>
+                      Move to <span x-text="nextLabel(column.status)"></span>
+                    </button>
+                  </template>
+
+                  <div class="flex items-center gap-1.5">
+                    <!-- View button -->
+                    <a :href="`/applications/${card.id}/`"
+                       class="flex-1 text-center px-2 py-1.5 text-xs font-medium text-white/60 rounded-md hover:bg-white/5 transition-colors"
+                       style="background: var(--hf-card-bg); border: 1px solid var(--hf-border);">
+                      View
+                    </a>
+                    <!-- Reject button -->
+                    <button @click="reject(card)"
+                            :disabled="card._updating || card.status === 'rejected'"
+                            x-show="card.status !== 'rejected'"
+                            class="flex-1 px-2 py-1.5 text-xs font-medium text-red-400 rounded-md transition-colors disabled:opacity-50"
+                            style="background: var(--hf-danger-subtle); border: 1px solid var(--hf-danger);">
+                      Reject
+                    </button>
+                  </div>
+
+                  <!-- Loading indicator -->
+                  <p x-show="card._updating" class="text-xs text-center text-white/40">Updating...</p>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- Rejected column (collapsible) -->
+      <div class="w-64 flex flex-col">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <button @click="showRejected = !showRejected"
+                  class="flex items-center gap-2 text-sm font-semibold text-white/70 hover:text-white transition-colors">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+            Rejected
+            <svg class="w-4 h-4 transition-transform" :class="showRejected ? 'rotate-0' : '-rotate-90'"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                style="background: var(--hf-danger-subtle); color: var(--hf-danger);"
+                x-text="filteredCards('rejected').length">
+          </span>
+        </div>
+        <div x-show="showRejected"
+             x-transition
+             class="rounded-xl p-2 flex flex-col gap-2 min-h-32"
+             style="background: var(--hf-card-bg);"
+             :class="filteredCards('rejected').length === 0 ? 'items-center justify-center' : ''">
+          <template x-if="filteredCards('rejected').length === 0">
+            <p class="text-xs text-white/40 py-4">No rejected applicants</p>
+          </template>
+          <template x-for="card in filteredCards('rejected')" :key="card.id">
+            <div class="glass-card rounded-lg p-3 opacity-75">
+              <p class="text-sm font-semibold text-white/70 truncate"
+                 x-text="card.applicant_name || card.candidate?.full_name || 'Applicant'"></p>
+              <p class="text-xs text-white/40 truncate"
+                 x-text="card.job_title || card.job?.title || '—'"></p>
+              <p class="text-xs text-white/40 mt-1" x-text="formatDate(card.created_at)"></p>
+              <a :href="`/applications/${card.id}/`"
+                 class="mt-2 block text-center px-2 py-1.5 text-xs font-medium text-white/50 rounded-md hover:bg-white/5 transition-colors"
+                 style="background: var(--hf-card-bg); border: 1px solid var(--hf-border);">
+                View
+              </a>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div><!-- /kanban -->
+
+  <!-- Reject confirm modal -->
+  <div x-show="rejectTarget"
+       x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       aria-modal="true" role="dialog">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="rejectTarget = null"></div>
+    <div class="relative max-w-md w-full p-6 rounded-2xl"
+         style="background: var(--hf-overlay-bg); backdrop-filter: blur(20px); border: 1px solid var(--hf-divider-color); border-radius: 1rem;">
+      <h3 class="text-base font-semibold text-white font-display mb-2">Reject Application</h3>
+      <p class="text-sm text-white/50 mb-6">
+        Are you sure you want to reject
+        <strong class="text-white" x-text="rejectTarget?.applicant_name || rejectTarget?.candidate?.full_name || 'this applicant'"></strong>?
+      </p>
+      <div class="flex items-center gap-3 justify-end">
+        <button @click="rejectTarget = null"
+                class="hf-btn-ghost px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+          Cancel
+        </button>
+        <button @click="confirmReject()"
+                class="hf-btn-danger px-4 py-2 text-sm font-medium rounded-lg transition-colors">
+          Reject
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /x-data -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function pipelineBoard() {
+  return {
+    loading: true,
+    allApplications: [],
+    searchQuery: '',
+    showRejected: true,
+    rejectTarget: null,
+
+    columns: [
+      { status: 'applied',     label: 'Applied',     dotColor: 'bg-blue-500',   badgeColor: 'text-[#A5B4FC]', badgeStyle: 'background: rgba(99, 102, 241, 0.1);' },
+      { status: 'reviewing',   label: 'Reviewing',   dotColor: 'bg-yellow-500', badgeColor: 'text-[#FBBF24]', badgeStyle: 'background: rgba(245, 158, 11, 0.1);' },
+      { status: 'shortlisted', label: 'Shortlisted', dotColor: 'bg-indigo-500', badgeColor: 'text-[#A5B4FC]', badgeStyle: 'background: rgba(99, 102, 241, 0.1);' },
+      { status: 'interview',   label: 'Interview',   dotColor: 'bg-purple-500', badgeColor: 'text-[#C4B5FD]', badgeStyle: 'background: rgba(139, 92, 246, 0.1);' },
+      { status: 'offered',     label: 'Offered',     dotColor: 'bg-green-500',  badgeColor: 'text-[#34D399]', badgeStyle: 'background: rgba(16, 185, 129, 0.1);' },
+    ],
+
+    statusFlow: ['applied', 'reviewing', 'shortlisted', 'interview', 'offered'],
+    statusLabels: {
+      applied: 'Applied', reviewing: 'Reviewing', shortlisted: 'Shortlisted',
+      interview: 'Interview', offered: 'Offered',
+    },
+
+    async init() {
+      await this.reload();
+    },
+
+    async reload() {
+      this.loading = true;
+      try {
+        // Load all pages (up to 200 for pipeline view)
+        const data = await HireFlowAPI.listApplications('page_size=200');
+        this.allApplications = (data.results || data).map(a => ({ ...a, _updating: false }));
+      } catch (e) {
+        console.error('Pipeline load error:', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    filteredCards(status) {
+      const q = this.searchQuery.toLowerCase().trim();
+      return this.allApplications.filter(a => {
+        if (a.status !== status) return false;
+        if (!q) return true;
+        const name = (a.applicant_name || a.candidate?.full_name || '').toLowerCase();
+        const title = (a.job_title || a.job?.title || '').toLowerCase();
+        return name.includes(q) || title.includes(q);
+      });
+    },
+
+    applyFilter() {
+      // Reactivity is handled automatically via filteredCards()
+    },
+
+    get totalCount() {
+      return this.allApplications.filter(a => a.status !== 'withdrawn').length;
+    },
+
+    nextStatus(current) {
+      const idx = this.statusFlow.indexOf(current);
+      if (idx === -1 || idx >= this.statusFlow.length - 1) return null;
+      return this.statusFlow[idx + 1];
+    },
+
+    nextLabel(current) {
+      const next = this.nextStatus(current);
+      return next ? this.statusLabels[next] : '';
+    },
+
+    async advance(card, newStatus) {
+      card._updating = true;
+      try {
+        const updated = await HireFlowAPI.updateApplicationStatus(card.id, newStatus);
+        const idx = this.allApplications.findIndex(a => a.id === card.id);
+        if (idx !== -1) {
+          this.allApplications[idx] = { ...this.allApplications[idx], ...updated, _updating: false };
+        }
+      } catch (e) {
+        console.error('Advance failed:', e);
+        card._updating = false;
+      }
+    },
+
+    reject(card) {
+      this.rejectTarget = card;
+    },
+
+    async confirmReject() {
+      if (!this.rejectTarget) return;
+      const card = this.rejectTarget;
+      this.rejectTarget = null;
+      card._updating = true;
+      try {
+        const updated = await HireFlowAPI.updateApplicationStatus(card.id, 'rejected');
+        const idx = this.allApplications.findIndex(a => a.id === card.id);
+        if (idx !== -1) {
+          this.allApplications[idx] = { ...this.allApplications[idx], ...updated, _updating: false };
+        }
+      } catch (e) {
+        console.error('Reject failed:', e);
+        card._updating = false;
+      }
+    },
+
+    formatDate(d) {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    },
+  };
+}
+</script>
+{% endblock %}

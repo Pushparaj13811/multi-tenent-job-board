@@ -1,0 +1,509 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}Jobs | HireFlow{% endblock %}
+{% block meta_description %}Browse thousands of job listings on HireFlow. Filter by type, experience, location, and more.{% endblock %}
+
+{% block content %}
+<div
+  x-data="jobBoard()"
+  x-init="init()"
+  class="min-h-screen"
+>
+  <!-- Page header + search bar -->
+  <div class="border-b" style="background: var(--hf-surface); border-color: var(--hf-divider-color);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 class="text-3xl font-display font-bold text-white mb-6">Find your next opportunity</h1>
+
+      <!-- Search bar -->
+      <div class="flex gap-3">
+        <div class="relative flex-1">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <input
+            type="search"
+            x-model="searchQuery"
+            @input.debounce.400ms="onSearch()"
+            @keydown.enter.prevent="onSearch()"
+            placeholder="Search jobs, companies, skills…"
+            class="hf-input block w-full pl-10 pr-4 py-3 rounded-xl"
+          >
+        </div>
+        <button
+          @click="onSearch()"
+          class="hf-btn-primary inline-flex items-center px-5 py-3 rounded-xl"
+        >
+          Search
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex gap-8">
+
+      <!-- Filter sidebar -->
+      <aside class="hidden lg:block w-64 shrink-0">
+        <div class="glass-card p-5 sticky top-24">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-semibold text-white uppercase tracking-wide">Filters</h2>
+            <button
+              @click="clearFilters()"
+              class="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors"
+              x-show="hasActiveFilters"
+            >
+              Clear all
+            </button>
+          </div>
+
+          <!-- Job Type -->
+          <div class="mb-6">
+            <h3 class="text-sm font-medium text-white/70 mb-3">Job Type</h3>
+            <div class="space-y-2">
+              <template x-for="type in jobTypes" :key="type.value">
+                <label class="flex items-center gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    :value="type.value"
+                    x-model="filters.job_type"
+                    @change="applyFilters()"
+                    class="w-4 h-4 text-primary-500 border-white/20 rounded bg-white/5 focus:ring-primary-500 focus:ring-offset-0"
+                  >
+                  <span class="text-sm text-white/60 group-hover:text-white transition-colors" x-text="type.label"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+
+          <!-- Experience Level -->
+          <div class="mb-6">
+            <h3 class="text-sm font-medium text-white/70 mb-3">Experience Level</h3>
+            <div class="space-y-2">
+              <template x-for="level in experienceLevels" :key="level.value">
+                <label class="flex items-center gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    :value="level.value"
+                    x-model="filters.experience_level"
+                    @change="applyFilters()"
+                    class="w-4 h-4 text-primary-500 border-white/20 rounded bg-white/5 focus:ring-primary-500 focus:ring-offset-0"
+                  >
+                  <span class="text-sm text-white/60 group-hover:text-white transition-colors" x-text="level.label"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+
+          <!-- Remote toggle -->
+          <div class="mb-6">
+            <h3 class="text-sm font-medium text-white/70 mb-3">Work Mode</h3>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-sm text-white/60">Remote only</span>
+              <button
+                type="button"
+                @click="filters.is_remote = !filters.is_remote; applyFilters()"
+                :class="filters.is_remote ? 'bg-primary-500' : 'bg-white/10'"
+                class="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
+                :aria-checked="filters.is_remote"
+                role="switch"
+              >
+                <span
+                  :class="filters.is_remote ? 'translate-x-5' : 'translate-x-0'"
+                  class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out"
+                ></span>
+              </button>
+            </label>
+          </div>
+
+          <!-- Location -->
+          <div>
+            <h3 class="text-sm font-medium text-white/70 mb-3">Location</h3>
+            <input
+              type="text"
+              x-model="filters.location"
+              @input.debounce.400ms="applyFilters()"
+              placeholder="City, state, or country"
+              class="hf-input block w-full"
+            >
+          </div>
+        </div>
+      </aside>
+
+      <!-- Mobile filter toggle -->
+      <div class="lg:hidden w-full mb-4" x-data="{ mobileFiltersOpen: false }">
+        <button
+          @click="mobileFiltersOpen = !mobileFiltersOpen"
+          class="hf-btn-secondary inline-flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+          </svg>
+          Filters
+          <span x-show="hasActiveFilters" class="bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">!</span>
+        </button>
+
+        <!-- Mobile filter panel -->
+        <div
+          x-show="mobileFiltersOpen"
+          x-transition
+          class="mt-3 glass-card p-5"
+        >
+          <!-- Job Type -->
+          <div class="mb-5">
+            <h3 class="text-sm font-semibold text-white/70 mb-3">Job Type</h3>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="type in jobTypes" :key="type.value">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    :value="type.value"
+                    x-model="filters.job_type"
+                    @change="applyFilters()"
+                    class="w-4 h-4 text-primary-500 border-white/20 rounded bg-white/5 focus:ring-primary-500"
+                  >
+                  <span class="text-sm text-white/60" x-text="type.label"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+
+          <!-- Experience Level -->
+          <div class="mb-5">
+            <h3 class="text-sm font-semibold text-white/70 mb-3">Experience Level</h3>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="level in experienceLevels" :key="level.value">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    :value="level.value"
+                    x-model="filters.experience_level"
+                    @change="applyFilters()"
+                    class="w-4 h-4 text-primary-500 border-white/20 rounded bg-white/5 focus:ring-primary-500"
+                  >
+                  <span class="text-sm text-white/60" x-text="level.label"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+
+          <!-- Remote -->
+          <div class="mb-5">
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-sm font-semibold text-white/70">Remote only</span>
+              <button
+                type="button"
+                @click="filters.is_remote = !filters.is_remote; applyFilters()"
+                :class="filters.is_remote ? 'bg-primary-500' : 'bg-white/10'"
+                class="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors"
+                :aria-checked="filters.is_remote"
+                role="switch"
+              >
+                <span :class="filters.is_remote ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200"></span>
+              </button>
+            </label>
+          </div>
+
+          <!-- Location -->
+          <div>
+            <h3 class="text-sm font-semibold text-white/70 mb-3">Location</h3>
+            <input
+              type="text"
+              x-model="filters.location"
+              @input.debounce.400ms="applyFilters()"
+              placeholder="City, state, or country"
+              class="hf-input block w-full"
+            >
+          </div>
+
+          <div class="mt-4 flex justify-between">
+            <button @click="clearFilters()" class="text-sm text-primary-400 font-medium" x-show="hasActiveFilters">Clear all</button>
+            <button @click="mobileFiltersOpen = false" class="text-sm text-white/70 font-medium ml-auto">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="flex-1 min-w-0">
+
+        <!-- Results count -->
+        <div class="flex items-center justify-between mb-5" x-show="!loading">
+          <p class="text-sm text-white/50">
+            <span x-show="jobs.length > 0">
+              Showing <span class="font-medium text-white" x-text="jobs.length"></span> jobs
+              <span x-show="searchQuery"> for "<span class="font-medium text-white" x-text="searchQuery"></span>"</span>
+            </span>
+          </p>
+        </div>
+
+        <!-- Loading skeletons -->
+        <div x-show="loading" class="grid gap-4 sm:grid-cols-1 lg:grid-cols-1">
+          <template x-for="i in 6" :key="i">
+            <div class="glass-card p-6">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                  <div class="h-5 skeleton w-3/5 mb-2"></div>
+                  <div class="h-4 skeleton w-2/5"></div>
+                </div>
+                <div class="w-12 h-12 skeleton rounded-lg ml-4 shrink-0"></div>
+              </div>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <div class="h-6 skeleton rounded-full w-20"></div>
+                <div class="h-6 skeleton rounded-full w-16"></div>
+                <div class="h-6 skeleton rounded-full w-24"></div>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="h-4 skeleton w-1/3"></div>
+                <div class="h-4 skeleton w-1/4"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Job cards -->
+        <div x-show="!loading && jobs.length > 0" class="space-y-4">
+          <template x-for="job in jobs" :key="job.id">
+            <a
+              :href="'{% url "frontend:job-board" %}'.replace('/jobs/', '/jobs/') + job.slug + '/'"
+              class="block glass-card glass-card-hover group"
+            >
+              <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                  <!-- Job info -->
+                  <div class="flex-1 min-w-0">
+                    <h2
+                      class="text-lg font-semibold text-white group-hover:text-primary-400 transition-colors truncate"
+                      x-text="job.title"
+                    ></h2>
+                    <p class="mt-1 text-sm font-medium text-white/60" x-text="job.company_name || job.company?.name || 'Company'"></p>
+
+                    <!-- Location + remote -->
+                    <div class="mt-2 flex items-center gap-2 text-sm text-white/40">
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      <span x-text="job.location || 'Location not specified'"></span>
+                      <span
+                        x-show="job.is_remote"
+                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                        style="background: var(--hf-success-subtle); color: var(--hf-success);"
+                      >
+                        Remote
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Company logo placeholder -->
+                  <div class="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style="background: var(--hf-indigo-subtle); border: 1px solid var(--hf-indigo-light);">
+                    <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Badges row -->
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);"
+                    x-text="$root.jobTypeLabel(job.job_type)"
+                  ></span>
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    style="background: var(--hf-indigo-subtle); color: var(--hf-indigo-light);"
+                    x-text="$root.experienceLabel(job.experience_level)"
+                  ></span>
+                  <span
+                    x-show="job.status && job.status !== 'published'"
+                    :class="$root.statusColor(job.status)"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                    x-text="job.status"
+                  ></span>
+                </div>
+
+                <!-- Salary + date -->
+                <div class="mt-4 flex items-center justify-between text-sm">
+                  <span class="font-medium text-white/70" x-text="$root.formatSalary(job.salary_min, job.salary_max, job.currency)"></span>
+                  <span class="text-white/30" x-text="$root.timeAgo(job.created_at)"></span>
+                </div>
+              </div>
+            </a>
+          </template>
+        </div>
+
+        <!-- Empty state -->
+        <div
+          x-show="!loading && jobs.length === 0"
+          class="text-center py-20"
+        >
+          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background: var(--hf-card-bg);">
+            <svg class="w-8 h-8 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">No jobs found</h3>
+          <p class="text-sm text-white/50 max-w-sm mx-auto mb-6">
+            <span x-show="searchQuery || hasActiveFilters">Try adjusting your search terms or clearing some filters.</span>
+            <span x-show="!searchQuery && !hasActiveFilters">No jobs are available right now. Check back soon!</span>
+          </p>
+          <button
+            x-show="searchQuery || hasActiveFilters"
+            @click="clearFilters()"
+            class="hf-btn-primary inline-flex items-center px-4 py-2"
+          >
+            Clear filters
+          </button>
+        </div>
+
+        <!-- Pagination -->
+        <div
+          x-show="!loading && (prevCursor || nextCursor)"
+          class="mt-8 flex items-center justify-between py-4"
+        >
+          <button
+            @click="loadPage(prevCursor)"
+            :disabled="!prevCursor"
+            class="hf-btn-secondary inline-flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Previous
+          </button>
+          <button
+            @click="loadPage(nextCursor)"
+            :disabled="!nextCursor"
+            class="hf-btn-secondary inline-flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Next
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function jobBoard() {
+  return {
+    jobs: [],
+    loading: true,
+    searchQuery: '',
+    nextCursor: null,
+    prevCursor: null,
+    filters: {
+      job_type: [],
+      experience_level: [],
+      is_remote: false,
+      location: '',
+    },
+    jobTypes: [
+      { value: 'full_time',   label: 'Full Time' },
+      { value: 'part_time',   label: 'Part Time' },
+      { value: 'contract',    label: 'Contract' },
+      { value: 'internship',  label: 'Internship' },
+      { value: 'remote',      label: 'Remote' },
+    ],
+    experienceLevels: [
+      { value: 'junior', label: 'Junior' },
+      { value: 'mid',    label: 'Mid-Level' },
+      { value: 'senior', label: 'Senior' },
+      { value: 'lead',   label: 'Lead' },
+    ],
+
+    get hasActiveFilters() {
+      return (
+        this.filters.job_type.length > 0 ||
+        this.filters.experience_level.length > 0 ||
+        this.filters.is_remote ||
+        this.filters.location.trim() !== ''
+      );
+    },
+
+    async init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      this.searchQuery = urlParams.get('q') || '';
+      if (urlParams.get('job_type')) this.filters.job_type = urlParams.get('job_type').split(',');
+      if (urlParams.get('experience_level')) this.filters.experience_level = urlParams.get('experience_level').split(',');
+      if (urlParams.get('is_remote') === 'true') this.filters.is_remote = true;
+      if (urlParams.get('location')) this.filters.location = urlParams.get('location');
+
+      await this.fetchJobs();
+    },
+
+    buildQueryString(cursor = null) {
+      const params = new URLSearchParams();
+
+      if (this.searchQuery.trim()) params.set('search', this.searchQuery.trim());
+      if (this.filters.job_type.length > 0) {
+        this.filters.job_type.forEach(t => params.append('job_type', t));
+      }
+      if (this.filters.experience_level.length > 0) {
+        this.filters.experience_level.forEach(l => params.append('experience_level', l));
+      }
+      if (this.filters.is_remote) params.set('is_remote', 'true');
+      if (this.filters.location.trim()) params.set('location', this.filters.location.trim());
+      if (cursor) params.set('cursor', cursor);
+
+      return params.toString();
+    },
+
+    async fetchJobs(cursor = null) {
+      this.loading = true;
+      try {
+        const qs = this.buildQueryString(cursor);
+        let data;
+        if (this.searchQuery.trim() && !cursor) {
+          data = await HireFlowAPI.searchJobs(this.searchQuery.trim());
+        } else {
+          data = await HireFlowAPI.listJobs(qs);
+        }
+        this.jobs = data.results || data.data || (Array.isArray(data) ? data : []);
+        this.nextCursor = data.next ? this.$root.extractCursor(data.next) : null;
+        this.prevCursor = data.previous ? this.$root.extractCursor(data.previous) : null;
+      } catch (err) {
+        console.error('Failed to load jobs:', err);
+        this.$root.error('Failed to load jobs. Please try again.');
+        this.jobs = [];
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async onSearch() {
+      this.prevCursor = null;
+      this.nextCursor = null;
+      await this.fetchJobs();
+    },
+
+    async applyFilters() {
+      this.prevCursor = null;
+      this.nextCursor = null;
+      await this.fetchJobs();
+    },
+
+    async loadPage(cursor) {
+      if (!cursor) return;
+      await this.fetchJobs(cursor);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    clearFilters() {
+      this.searchQuery = '';
+      this.filters = { job_type: [], experience_level: [], is_remote: false, location: '' };
+      this.prevCursor = null;
+      this.nextCursor = null;
+      this.fetchJobs();
+    },
+  };
+}
+</script>
+{% endblock %}
