@@ -1,0 +1,77 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DJANGO_SETTINGS_MODULE: config.settings.test
+  SECRET_KEY: "test-secret-key-that-is-at-least-fifty-characters-long-for-validation"
+  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/test_hireflow"
+  REDIS_URL: "redis://localhost:6379/0"
+  CELERY_BROKER_URL: "redis://localhost:6379/0"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_hireflow
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/base.txt
+          pip install -r requirements/development.txt
+
+      - name: Lint with Ruff
+        run: ruff check .
+
+      - name: Run migrations
+        run: python manage.py migrate --verbosity=0
+
+      - name: Run tests with coverage
+        run: |
+          pytest \
+            --cov=apps \
+            --cov=common \
+            --cov=middleware \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=90 \
+            --tb=short \
+            -q
